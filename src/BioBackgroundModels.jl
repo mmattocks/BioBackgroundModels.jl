@@ -1,6 +1,7 @@
 module BioBackgroundModels
 
 import Base:copy,size
+import BioSequences:DNASequence
 import Distances: euclidean
 import Distributions:Distribution,VariateForm,Univariate,Dirichlet,Categorical,logpdf,isprobvec
 import Distributed: RemoteChannel, myid, remote_do, rmprocs

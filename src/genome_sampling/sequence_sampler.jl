@@ -114,14 +114,14 @@ function get_sample_set(input_sample_jobs::RemoteChannel, completed_sample_jobs:
         genome_path, genome_index_path, partition_df, partitionid, sample_set_length, sample_window_min, sample_window_max, deterministic = take!(input_sample_jobs)
 
         stranded::Bool = get_strand_dict()[partitionid]
-        scaffold_sequence_record_dict::Dict{String,BioSequences.DNASequence} = build_scaffold_seq_dict(genome_path, genome_index_path)
+        scaffold_sequence_record_dict::Dict{String,DNASequence} = build_scaffold_seq_dict(genome_path, genome_index_path)
 
-        sample_df = DataFrame(SampleScaffold=String[],SampleStart=Integer[],SampleEnd=Integer[],SampleSequence=BioSequences.DNASequence[],Strand=Char[])
+        sample_df = DataFrame(SampleScaffold=String[],SampleStart=Integer[],SampleEnd=Integer[],SampleSequence=DNASequence[],Strand=Char[])
         metacoordinate_bitarray = trues(partition_df.MetaEnd[end])
         sample_set_counter = 0
 
         while sample_set_counter < sample_set_length #while we don't yet have enough sample sequence
-            sample_scaffold::String, sample_Start::Integer, sample_End::Integer, sample_metaStart::Integer, sample_metaEnd::Integer, sample_sequence::BioSequences.DNASequence, strand::Char = get_sample(metacoordinate_bitarray, sample_window_min, sample_window_max,  partition_df, scaffold_sequence_record_dict, partitionid; stranded=stranded, deterministic=deterministic)
+            sample_scaffold::String, sample_Start::Integer, sample_End::Integer, sample_metaStart::Integer, sample_metaEnd::Integer, sample_sequence::DNASequence, strand::Char = get_sample(metacoordinate_bitarray, sample_window_min, sample_window_max,  partition_df, scaffold_sequence_record_dict, partitionid; stranded=stranded, deterministic=deterministic)
             push!(sample_df,[sample_scaffold, sample_Start, sample_End, sample_sequence, strand]) #push the sample to the df
             sample_length = sample_End - sample_Start + 1
             sample_set_counter += sample_length #increase the counter by the length of the sampled sequence
@@ -139,7 +139,7 @@ end
                 #function to obtain a dict of scaffold sequences from a BioSequences FASTA reader
                 function build_scaffold_seq_dict(genome_fa, genome_index)
                     genome_reader = open(BioSequences.FASTA.Reader, genome_fa, index=genome_index)
-                    seq_dict::Dict{String, BioSequences.DNASequence} = Dict{String,BioSequences.FASTA.Record}()
+                    seq_dict::Dict{String, DNASequence} = Dict{String,BioSequences.FASTA.Record}()
                     @inbounds for record in genome_reader
                         id = identifier(record)
                         seq_dict[rectify_identifier(id)]=sequence(record)
@@ -160,13 +160,13 @@ end
                 end
 
                 #function to produce a single sample from a metacoordinate set and the feature df
-                function get_sample(metacoordinate_bitarray::BitArray, sample_window_min::Integer, sample_window_max::Integer, partition_df::DataFrame,  scaffold_seq_dict::Dict{String,BioSequences.DNASequence}, partitionid::String; stranded::Bool=false, deterministic::Bool=false)
+                function get_sample(metacoordinate_bitarray::BitArray, sample_window_min::Integer, sample_window_max::Integer, partition_df::DataFrame,  scaffold_seq_dict::Dict{String,DNASequence}, partitionid::String; stranded::Bool=false, deterministic::Bool=false)
                     proposal_acceptance = false
                     sample_metaStart = 0
                     sample_metaEnd = 0
                     sample_Start = 0
                     sample_End = 0
-                    sample_sequence = BioSequences.DNASequence("")
+                    sample_sequence = DNASequence("")
                     sample_scaffold = ""
                     strand = nothing
                     
@@ -247,7 +247,7 @@ end
 
 
                 # function to check for repetitive stretches or degenerate bases in proposal sequence
-                function mask_check(proposal_sequence::BioSequences.DNASequence)
+                function mask_check(proposal_sequence::DNASequence)
                     proposal_acceptance = true
                     if hasambiguity(proposal_sequence) || isrepetitive(proposal_sequence, (length(proposal_sequence) ÷ 10))
                         proposal_acceptance = false
@@ -257,7 +257,7 @@ end
 
 ####SHARED SEQUENCE FETCHER####
 # function to get proposal sequence from dict of scaffold sequences, given coords and scaffold id
-function fetch_sequence(scaffold_id::String, scaffold_seq_dict::Dict{String, BioSequences.DNASequence}, proposal_start::Integer, proposal_end::Integer, strand::Char; deterministic=false)
+function fetch_sequence(scaffold_id::String, scaffold_seq_dict::Dict{String, DNASequence}, proposal_start::Integer, proposal_end::Integer, strand::Char; deterministic=false)
     if strand == '0' #unstranded samples may be returned with no preference in either orientation
         deterministic ? strand = '+' : (rand(1)[1] <=.5 ? strand = '+' : strand = '-')
     end
