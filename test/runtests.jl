@@ -1,5 +1,4 @@
-#BGHMM
-using Test,BioBackgroundModels,BioSequences,DataFrames,Distributed,Distributions,ProgressMeter,Random,StatsFuns
+using BioBackgroundModels,BioSequences,DataFrames,Distributed,Distributions,ProgressMeter,Random,StatsFuns,Test
 import BioBackgroundModels: get_order_n_seqs, code_seqs, make_padded_df, add_partition_masks!, partition_genome_coordinates, setup_sample_jobs, meta_to_feature_coord, get_strand_dict, build_scaffold_seq_dict, get_feature_params_from_metacoord, determine_sample_window, fetch_sequence, get_sample_set, assert_hmm, linear_step, get_BGHMM_symbol_lh,make_padded_df,add_partition_masks!,BGHMM_likelihood_calc
 
 include("synthetic_sequence_gen.jl")
