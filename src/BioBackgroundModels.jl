@@ -1,7 +1,6 @@
 module BioBackgroundModels
 
 import Base:copy,size
-import BioSequences:DNASequence
 import Distances: euclidean
 import Distributions:Distribution,VariateForm,Univariate,Dirichlet,Categorical,logpdf,isprobvec
 import Distributed: RemoteChannel, myid, remote_do, rmprocs
@@ -15,7 +14,7 @@ using BioSequences, DataFrames, GenomicFeatures, ProgressMeter
 include("HMM/HMM.jl")
 export HMM
 include("HMM/chain.jl")
-export Chain_ID
+export Chain_ID, EM_step
 include("API/genome_sampling.jl")
 export setup_sample_jobs, execute_sample_jobs
 include("API/EM_worker.jl")

@@ -59,11 +59,18 @@ function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, ch
         end
         #push the hmm and related params to the results_dict
         push!(chains[jobid], EM_step(iterate, hmm, log_p, delta, converged))
+        #try to serialize the results; catch interrupts and other errors to prevent corruption
+        try
+            serialize(chains_path, chains)
+        catch e
+            @warn "Serializing failed!"
+            println(e)
+        end
+       
         #decrement the job counter, update overall progress meter, and save the current results dict on convergence or max iterate
         if converged || iterate == max_iterates
             job_counter -= 1
             ProgressMeter.update!(overall_meter, (no_input_hmms-job_counter))
-            serialize(chains_path, chains)
             if !isready(input_channel) #if there are no more jobs to be learnt, retire the worker
                 rmprocs(workerid)
             end
