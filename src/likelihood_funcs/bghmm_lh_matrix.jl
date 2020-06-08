@@ -65,11 +65,11 @@ function BGHMM_likelihood_calc(observations::DataFrame, BGHMM_dict::Dict, code_p
 end
 
 function fragment_observations_by_BGHMM(seqs::AbstractVector, masks::AbstractVector)
-    likelihood_jobs = Vector{Tuple{Tuple,BioSequence{DNAAlphabet{4}}}}()
+    likelihood_jobs = Vector{Tuple{Tuple,LongSequence{DNAAlphabet{2}}}}()
     @showprogress 1 "Fragmenting observations by partition..." for (o, obs_seq) in enumerate(seqs)
         mask = masks[o]
-        frags = Vector{BioSequence{DNAAlphabet{4}}}() #container for all subsequences in observation
-        frag = BioSequence{DNAAlphabet{4}}()
+        frags = Vector{LongSequence{DNAAlphabet{2}}}() #container for all subsequences in observation
+        frag = LongSequence{DNAAlphabet{2}}()
 
         frag_end=0
         frag_start = 1

@@ -19,7 +19,7 @@ Sys.islinux() ? posfasta =  (@__DIR__) * "/syntheticpos.fa" : posfasta = (@__DIR
 sample_record_dfs = Dict{String,DataFrame}()
 
 @testset "Order coding functions" begin
-    test_seqs = [BioSequences.DNASequence("ACGTACGTACGTACGT"),BioSequences.DNASequence("TTTTTTT")]
+    test_seqs = [BioSequences.LongSequence{DNAAlphabet{2}}("ACGTACGTACGTACGT"),BioSequences.LongSequence{DNAAlphabet{2}}("TTTTTTT")]
     target0= [1 2 3 4 1 2 3 4 1 2 3 4 1 2 3 4 0; 4 4 4 4 4 4 4 0 0 0 0 0 0 0 0 0 0]
     target2= [37 58 15 20 37 58 15 20 37 58 15 20 37 58 0; 64 64 64 64 64 0 0 0 0 0 0 0 0 0 0]
     order0_seqs = get_order_n_seqs(test_seqs,0)
@@ -31,7 +31,7 @@ sample_record_dfs = Dict{String,DataFrame}()
 end
 
 @testset "Partition masker functions" begin
-    synthetic_seq = BioSequences.DNASequence(generate_synthetic_seq())
+    synthetic_seq = BioSequences.LongSequence{DNAAlphabet{2}}(generate_synthetic_seq())
     position_start = 501
     position_length=350
     perigenic_pad = 250
@@ -70,7 +70,7 @@ end
     partition_lengths = Dict("exon"=>5*60,"intergenic"=>250,"periexonic"=>450)
 
     @info "Testing sequence sampler fns..."
-    synthetic_seq = BioSequences.DNASequence(generate_synthetic_seq())
+    synthetic_seq = BioSequences.LongSequence{DNAAlphabet{2}}(generate_synthetic_seq())
 
     @info "Partitioning synthetic genome coordinates..."
     coordinate_partitions = partition_genome_coordinates(gff, perigenic_pad)
@@ -149,7 +149,7 @@ end
     end
 
     
-    synthetic_seq = BioSequences.DNASequence(generate_synthetic_seq())
+    synthetic_seq = BioSequences.LongSequence{DNAAlphabet{2}}(generate_synthetic_seq())
     for (partid, df) in sample_record_dfs
         for sample in eachrow(df)
             target_seq = synthetic_seq[sample.SampleStart:sample.SampleEnd]

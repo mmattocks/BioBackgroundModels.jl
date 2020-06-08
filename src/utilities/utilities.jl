@@ -4,8 +4,8 @@ Utility functions for learning and using background genomic hidden markov models
 
 #function to split random sample dataframe into training and test sets (divide total sequence length by half)
 function split_obs_sets(sample_dfs::Dict{String,DataFrame})
-    training_sets = Dict{String,Vector{BioSequence{DNAAlphabet{4}}}}()
-    test_sets = Dict{String,Vector{BioSequence{DNAAlphabet{4}}}}()
+    training_sets = Dict{String,Vector{LongSequence{DNAAlphabet{2}}}}()
+    test_sets = Dict{String,Vector{LongSequence{DNAAlphabet{2}}}}()
 
     for (partition_id, partition) in sample_dfs
         partition.sampleLength = (partition.SampleEnd - partition.SampleStart) .+ 1
@@ -65,7 +65,7 @@ function HMM_global_search_params(hmm_results_dict::Dict)
 end
 
 #function to add additional replicates to HMMs learnt in survey for estimation of global optimum
-function HMM_global_search_setup!(hmm_results_dict::Dict, params_dict::Dict{String,Tuple{Integer,Integer}}, search_replicates::Integer, search_thresh::AbstractFloat,  input_hmms::RemoteChannel, training_sets::Dict{String,Vector{BioSequence{DNAAlphabet{4}}}}, base_alphabet_size::Integer)
+function HMM_global_search_setup!(hmm_results_dict::Dict, params_dict::Dict{String,Tuple{Integer,Integer}}, search_replicates::Integer, search_thresh::AbstractFloat,  input_hmms::RemoteChannel, training_sets::Dict{String,Vector{LongSequence{DNAAlphabet{2}}}}, base_alphabet_size::Integer)
     no_input_hmms=search_replicates * length(params_dict)
     code_dict = Dict{String, Vector}()
 

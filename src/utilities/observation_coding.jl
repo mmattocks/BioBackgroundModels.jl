@@ -1,19 +1,19 @@
 #KMER ORDER/SEQUENCE INTEGER CODING UTILITIES
 #higher order DNA alphabet
 struct CompoundAlphabet
-  symbols::Dict{Kmer,Integer}
+  symbols::Dict{Mer{DNAAlphabet{2}},Integer}
 end
 
-#holds a DNA sequence, a higher-order index/kmer sequence, the alphabet used to produce the Kmers, and the order number
+#holds a DNA sequence, a higher-order index/kmer sequence, the alphabet used to produce the Mer{DNAAlphabet{2}}s, and the order number
 struct N_Order_ntSequence
   alphabet::CompoundAlphabet
   seq_lengths::Vector{Integer}
-  order_kmers::Vector{Vector{Kmer}}
+  order_kmers::Vector{Vector{Mer{DNAAlphabet{2}}}}
 end
 
 #build a CompoundAlphabet for DNA of some order_no
 function compound_DNA_alphabet(alphabet::Tuple, order_no::Integer)
-  symbols = Array{Kmer}(undef, length(alphabet)^(order_no+1))
+  symbols = Array{Mer{DNAAlphabet{2}}}(undef, length(alphabet)^(order_no+1))
   tuples = Array{Tuple}
   if order_no > 0
       alphabet_list = [alphabet]
@@ -26,11 +26,11 @@ function compound_DNA_alphabet(alphabet::Tuple, order_no::Integer)
   end
 
   @inbounds for index in eachindex(tuples)
-      tuple_seq = Kmer(DNASequence(collect(tuples[index])))
+      tuple_seq = Mer{DNAAlphabet{2}}(collect(tuples[index]))
       symbols[index] = tuple_seq
   end
 
-  code_dict=Dict{Kmer,Integer}()
+  code_dict=Dict{Mer{DNAAlphabet{2}},Integer}()
   @inbounds for i in 1:length(symbols)
       code_dict[symbols[i]]=i
   end
@@ -38,7 +38,7 @@ function compound_DNA_alphabet(alphabet::Tuple, order_no::Integer)
   return CompoundAlphabet(code_dict)
 end
 
-function code_job_obs(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{BioSequence{DNAAlphabet{4}}}})
+function code_job_obs(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{LongSequence{DNAAlphabet{2}}}})
     code_jobs=Vector{Tuple{String,Integer}}()
     for id in job_ids #assemble a vector of observation encoding jobs
         code_job=(id.obs_id, id.order)
@@ -54,15 +54,15 @@ function code_job_obs(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{Bi
     return code_dict
 end
 
-#from a vector of DNASequences, get
-function get_order_n_seqs(seqs::Vector{DNASequence}, order_no::Integer, base_tuple::Tuple=ACGT)
-    kmer_vecs = Vector{Vector{Kmer}}()
+#from a vector of LongSequences, get
+function get_order_n_seqs(seqs::Vector{LongSequence{DNAAlphabet{2}}}, order_no::Integer, base_tuple::Tuple=ACGT)
+    kmer_vecs = Vector{Vector{Mer{DNAAlphabet{2}}}}()
     length_vec = Vector{Integer}()
     window = order_no + 1
 
     for seq in seqs
-        kmer_vec = Vector{Kmer}()
-        @inbounds for (i, kmer) in collect(each(Kmer{DNA,window},seq))
+        kmer_vec = Vector{Mer{DNAAlphabet{2}}}()
+        @inbounds for (i, kmer) in collect(each(Mer{DNAAlphabet{2},window},seq))
             push!(kmer_vec, kmer)
         end
 

@@ -7,17 +7,17 @@ function get_partition_code_dict(dict_forward::Bool=true)
 end
 
 function make_padded_df(position_fasta::String, gff3_path::String, genome_path::String, genome_index_path::String, pad::Integer)
-    position_reader = BioSequences.FASTA.Reader(open((position_fasta),"r"))
-    genome_reader = open(BioSequences.FASTA.Reader, genome_path, index=genome_index_path)
+    position_reader = FASTA.Reader(open((position_fasta),"r"))
+    genome_reader = open(FASTA.Reader, genome_path, index=genome_index_path)
     scaffold_df = build_scaffold_df(gff3_path)
-    position_df = DataFrame(SeqID = String[], Start=Int[], End=Int[], PadSeq = DNASequence[], PadStart=Int[], RelStart=Int[], SeqOffset=Int[])
+    position_df = DataFrame(SeqID = String[], Start=Int[], End=Int[], PadSeq = LongSequence[], PadStart=Int[], RelStart=Int[], SeqOffset=Int[])
     scaffold_seq_dict = build_scaffold_seq_dict(genome_path, genome_index_path)
 
     for entry in position_reader
-        scaffold = BioSequences.FASTA.identifier(entry)
+        scaffold = FASTA.identifier(entry)
 
         if scaffold != "MT"
-            desc_array = split(BioSequences.FASTA.description(entry))
+            desc_array = split(FASTA.description(entry))
             pos_start = parse(Int, desc_array[2])
             pos_end = parse(Int, desc_array[4])
             scaffold_end = scaffold_df.End[findfirst(isequal(scaffold), scaffold_df.SeqID)]

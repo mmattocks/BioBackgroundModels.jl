@@ -1,6 +1,6 @@
 #function to setup an HMM chains dictionary and RemoteChannel for learning jobs, given a vector of state #s, order_nos, replicates to train, the dictionary to fill, the RemoteChannel and the training sequences
 #resumes any existing non-converged chains, otherwise initialises hmms for new chains given provided constants
-function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{BioSequence{DNAAlphabet{4}}}};  chains::Dict{Chain_ID,Vector{EM_step}}=Dict{Chain_ID,Vector{EM_step}}(), init_function::Function=autotransition_init)
+function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{LongSequence{DNAAlphabet{2}}}};  chains::Dict{Chain_ID,Vector{EM_step}}=Dict{Chain_ID,Vector{EM_step}}(), init_function::Function=autotransition_init)
     no_input_hmms = length(job_ids)
     input_channel= RemoteChannel(()->Channel{Tuple}(no_input_hmms*3)) #channel to hold HMM learning jobs
     output_channel= RemoteChannel(()->Channel{Tuple}(Inf)) #channel to take EM iterates off of

@@ -9,7 +9,7 @@ import Random: rand
 import Serialization: serialize
 import StatsFuns: logsumexp, logaddexp
 import Statistics: mean
-using BioSequences, DataFrames, GenomicFeatures, ProgressMeter
+using BioSequences, DataFrames, FASTX, GFF3, ProgressMeter
 
 include("HMM/HMM.jl")
 export HMM
