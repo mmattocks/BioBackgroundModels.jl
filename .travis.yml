@@ -11,4 +11,4 @@ matrix:
 notifications:
   email: false
 after_success:
-  - julia -e 'import Pkg; cd(Pkg.dir("CLHMM")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+  - julia -e 'import Pkg; cd(Pkg.dir("BioBackgroundModels")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
