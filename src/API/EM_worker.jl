@@ -1,7 +1,7 @@
 function EM_converge!(hmm_jobs::RemoteChannel, output_hmms::RemoteChannel; EM_func::Function=linear_step, delta_thresh=1e-3, max_iterates=5000, verbose=false)
     while isready(hmm_jobs)
         workerid = myid()
-        jobid::Tuple{String, Integer, Integer, Integer}, start_iterate::Integer, hmm::HMM, job_norm::AbstractFloat, observations::Matrix = take!(hmm_jobs)
+        jobid::Chain_ID, start_iterate::Integer, hmm::HMM, job_norm::AbstractFloat, observations::Matrix = take!(hmm_jobs)
         jobid == 0 && break #no valid job for this worker according to load_table entry
 
         start_iterate > max_iterates - 1 && throw(ArgumentError("HMM chain $jobid is already longer ($start_iterate iterates) than specified max_iterates!"))
