@@ -141,7 +141,7 @@ end
                     genome_reader = open(FASTA.Reader, genome_fa, index=genome_index)
                     seq_dict::Dict{String, LongSequence} = Dict{String,FASTA.Record}()
                     @inbounds for record in genome_reader
-                        id = identifier(record)
+                        id = FASTX.identifier(record)
                         seq_dict[rectify_identifier(id)]=sequence(record)
                     end
                     close(genome_reader)
