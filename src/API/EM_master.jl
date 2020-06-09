@@ -40,7 +40,7 @@ function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, ch
 
     #GET LEARNT HMMS OFF REMOTECHANNEL, SERIALISE AT EVERY ITERATION, UPDATE PROGRESS METERS
     job_counter=no_input_hmms
-    learning_meters=Dict{Tuple, ProgressHMM}()
+    learning_meters=Dict{Chain_ID, ProgressHMM}()
     overall_meter=Progress(no_input_hmms,"Overall batch progress:")
 
     while job_counter > 0
