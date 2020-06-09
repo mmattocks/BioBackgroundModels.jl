@@ -1,8 +1,8 @@
-struct Chain_ID
+struct Chain_ID{I<:Integer}
     obs_id::String
-    K::Int64
-    order::Int64
-    replicate::Int64
+    K::I
+    order::I
+    replicate::I
 end
 
 struct EM_step{F<:AbstractFloat,I<:Integer}
