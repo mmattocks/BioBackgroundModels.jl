@@ -52,9 +52,9 @@ function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, ch
         else
             offset = workerid - 1
             if iterate <=2
-                learning_meters[jobid] = ProgressHMM(delta_thresh, "Jobid $jobid on worker $workerid converging:", offset, 2)
+                learning_meters[jobid] = ProgressHMM(delta_thresh, "$jobid on worker $workerid converging:", offset, 2)
             else
-                learning_meters[jobid] = ProgressHMM(delta_thresh, "Jobid $jobid on worker $workerid converging:", offset, iterate)
+                learning_meters[jobid] = ProgressHMM(delta_thresh, "$jobid on worker $workerid converging:", offset, iterate)
             end
         end
         #push the hmm and related params to the results_dict

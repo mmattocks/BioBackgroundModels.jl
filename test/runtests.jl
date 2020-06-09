@@ -308,12 +308,12 @@ Random.seed!(1)
     #test fit_mle! function
     input_hmms= RemoteChannel(()->Channel{Tuple}(1))
     output_hmms = RemoteChannel(()->Channel{Tuple}(30))
-    jobtuple=("Test",6,0,1)
-    put!(input_hmms, (jobtuple, 2, hmm, 0.0, obs))
+    chainid=Chain_ID("Test",6,0,1)
+    put!(input_hmms, (chainid, 2, hmm, 0.0, obs))
     BioBackgroundModels.EM_converge!(input_hmms, output_hmms; max_iterates=4, verbose=true)
     wait(output_hmms)
     workerid, jobid, iterate, hmm3, log_p, delta, converged = take!(output_hmms)
-    @test jobid == jobtuple
+    @test jobid == chainid
     @test iterate == 3
     @test BioBackgroundModels.assert_hmm(hmm3.π0, hmm3.π, hmm3.D)
     @test size(hmm3) == size(hmm) == (6,1)
@@ -322,7 +322,7 @@ Random.seed!(1)
     @test converged == false
     wait(output_hmms)
     workerid, jobid, iterate, hmm4, log_p, delta, converged = take!(output_hmms)
-    @test jobid == jobtuple
+    @test jobid == chainid
     @test iterate == 4
     @test BioBackgroundModels.assert_hmm(hmm4.π0, hmm4.π, hmm4.D)
     @test size(hmm4) == size(hmm) == (6,1)
@@ -338,7 +338,7 @@ Random.seed!(1)
     end
     input_hmms= RemoteChannel(()->Channel{Tuple}(1))
     output_hmms = RemoteChannel(()->Channel{Tuple}(30))
-    put!(input_hmms, (jobtuple, 2, hmm, 0.0, obs))
+    put!(input_hmms, (chainid, 2, hmm, 0.0, obs))
     BioBackgroundModels.EM_converge!(input_hmms, output_hmms; delta_thresh=.05, max_iterates=100, verbose=true)
     wait(output_hmms)
     workerid, jobid, iterate, hmm4, log_p, delta, converged = take!(output_hmms)
@@ -533,12 +533,12 @@ end
     #test fit_mle! function
     input_hmms= RemoteChannel(()->Channel{Tuple}(1))
     output_hmms = RemoteChannel(()->Channel{Tuple}(30))
-    jobtuple=("Test",2,0,1)
-    put!(input_hmms, (jobtuple, 2, hmm, 0.0, transpose(obs)))
+    chainid=Chain_ID("Test",2,0,1)
+    put!(input_hmms, (chainid, 2, hmm, 0.0, transpose(obs)))
     BioBackgroundModels.EM_converge!(input_hmms, output_hmms, max_iterates=4, verbose=true)
     wait(output_hmms)
     workerid, jobid, iterate, hmm3, log_p, epsilon, converged = take!(output_hmms)
-    @test jobid == jobtuple
+    @test jobid == chainid
     @test iterate == 3
     @test assert_hmm(hmm3.π0, hmm3.π, hmm3.D)
     @test size(hmm3) == size(hmm) == (2,1)
@@ -547,7 +547,7 @@ end
     @test converged == false
     wait(output_hmms)
     workerid, jobid, iterate, hmm4, log_p, epsilon, converged = take!(output_hmms)
-    @test jobid == jobtuple
+    @test jobid == chainid
     @test iterate == 4
     @test assert_hmm(hmm4.π0, hmm4.π, hmm4.D)
     @test size(hmm4) == size(hmm) == (2,1)
@@ -562,7 +562,7 @@ end
     end
     input_hmms= RemoteChannel(()->Channel{Tuple}(1))
     output_hmms = RemoteChannel(()->Channel{Tuple}(30))
-    put!(input_hmms, (jobtuple, 2, hmm, 0.0, transpose(obs)))
+    put!(input_hmms, (chainid, 2, hmm, 0.0, transpose(obs)))
     BioBackgroundModels.EM_converge!(input_hmms, output_hmms; delta_thresh=.05, max_iterates=100, verbose=true)
     wait(output_hmms)
     workerid, jobid, iterate, hmm4, log_p, epsilon, converged = take!(output_hmms)

@@ -12,7 +12,7 @@ function EM_converge!(hmm_jobs::RemoteChannel, output_hmms::RemoteChannel; EM_fu
         obs_lengths = [findfirst(iszero,observations[o,:])-1 for o in 1:size(observations)[1]] #mask calculations here rather than mle_step to prevent recalculation every iterate
 
         start_iterate == 1 && put!(output_hmms, (workerid, jobid, curr_iterate, hmm, 0, 0, false)); #on the first iterate return the initial HMM for the chain right away
-        verbose && @info "Fitting HMM, start iterate $start_iterate, job ID $jobid with $(size(hmm.π)[1]) states and $(length(hmm.D[1].support)) symbols..."
+        verbose && @info "Fitting HMM, start iterate $start_iterate, $jobid with $(size(hmm.π)[1]) states and $(length(hmm.D[1].support)) symbols..."
 
         curr_iterate += 1
         if curr_iterate == 2 #no delta value is available
@@ -30,11 +30,11 @@ function EM_converge!(hmm_jobs::RemoteChannel, output_hmms::RemoteChannel; EM_fu
             delta = abs(lps(norm, -last_norm))
             if delta < delta_thresh
                 put!(output_hmms, (workerid, jobid, curr_iterate, new_hmm, norm, delta, true))
-                verbose && @info "Job ID $jobid converged after $(curr_iterate-1) EM steps"
+                verbose && @info "$jobid converged after $(curr_iterate-1) EM steps"
                 break
             else
                 put!(output_hmms, (workerid, jobid, curr_iterate, new_hmm, norm, delta, false))
-                verbose && @info "Job ID $jobid EM step $(curr_iterate-1) delta $delta"
+                verbose && @info "$jobid EM step $(curr_iterate-1) delta $delta"
                 last_norm = norm
             end
         end
