@@ -40,7 +40,7 @@ function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, ch
 
     #GET LEARNT HMMS OFF REMOTECHANNEL, SERIALISE AT EVERY ITERATION, UPDATE PROGRESS METERS
     job_counter=no_input_hmms
-    learning_meters=Dict{Tuple, BGHMM.ProgressHMM}()
+    learning_meters=Dict{Tuple, ProgressHMM}()
     overall_meter=Progress(no_input_hmms,"Overall batch progress:")
 
     while job_counter > 0
@@ -84,5 +84,5 @@ function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, ch
         chain.converged == true ? (converged_counter += 1) : (unconverged_counter += 1)
     end
 
-    @info "BGHMM batch learning task complete, $converged_counter converged jobs, $unconverged_counter jobs failed to converge in $max_iterates iterates since job start."
+    @info "Background HMM batch learning task complete, $converged_counter converged jobs, $unconverged_counter jobs failed to converge in $max_iterates iterates since job start."
 end
