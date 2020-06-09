@@ -26,7 +26,7 @@ function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{
     return no_input_hmms, chains, input_channel, output_channel
 end
 
-function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, chains::Dict{String,Vector{EM_step}},  input_channel::RemoteChannel, output_channel::RemoteChannel, chains_path::String,; EM_func::Function=linear_step, delta_thresh=1e-3, max_iterates=5000, verbose=false)
+function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, chains::Dict{Chain_ID,Vector{EM_step}},  input_channel::RemoteChannel, output_channel::RemoteChannel, chains_path::String,; EM_func::Function=linear_step, delta_thresh=1e-3, max_iterates=5000, verbose=false)
     #SEND HMM FIT JOBS TO WORKERS
     if isready(input_channel) > 0
         @info "Fitting HMMs.."
