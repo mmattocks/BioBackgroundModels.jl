@@ -142,7 +142,7 @@ end
                     seq_dict::Dict{String, LongSequence} = Dict{String,FASTA.Record}()
                     @inbounds for record in genome_reader
                         id = FASTA.identifier(record)
-                        seq_dict[rectify_identifier(id)]=sequence(record)
+                        seq_dict[rectify_identifier(id)]=FASTA.sequence(record)
                     end
                     close(genome_reader)
                     return seq_dict
