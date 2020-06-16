@@ -36,7 +36,6 @@ function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, ch
     no_input_hmms < 1 && throw(ArgumentError("Zero input HMMs reported, likely job set from setup_EM_jobs passed incorrectly"))
     length(chains) < 1 && throw(ArgumentError("No chains supplied, likely job set from setup_EM_jobs passed incorrectly"))
     !isready(input_channel) && throw(ArgumentError("HMM input channel has no contents, likely job set from setup_EM_jobs passed incorrectly"))
-    !ispath(chains_path) && throw(ArgumentError("Bad path to chains save file!"))
 
     #SEND HMM FIT JOBS TO WORKERS
     if isready(input_channel) > 0
