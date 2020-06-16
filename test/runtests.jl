@@ -579,7 +579,7 @@ end
 
 
     job_ids=Vector{Chain_ID}()
-    Ks=[1,2,4,6]; order_nos=[0,1,2]
+    Ks=[1,2,4]; order_nos=[0,1,2]
     for K in Ks, order in order_nos
         push!(job_ids, Chain_ID("test", K, order, 1))
     end

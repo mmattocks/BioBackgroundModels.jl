@@ -44,7 +44,7 @@ end
                         lls = churbanov_llhs(hmm,observations[:,t+1])
                         omask = findall(mask[:,t+1])
                         βoi_T[omask,:] .+= view(lls,omask,:)
-                        for m in 1:N
+                        Threads.@threads for m in 1:N
                             βoi_t[omask,m] = logsumexp.(eachrow(view(βoi_T,omask,:).+transpose(view(a,m,:))))
                             for j in 1:N, i in 1:N
                                 Tijm_t[omask, i, j, m] .= logsumexp.(eachrow(lps.(view(Tijm_T,omask,i,j,:), view(lls,omask,:), transpose(view(a,m,:)))))
