@@ -1,5 +1,14 @@
 #function to partition genome and set up Distributed RemoteChannels so partitions can be sampled simultaneously
 function setup_sample_jobs(genome_path::String, genome_index_path::String, gff3_path::String, sample_set_length::Integer, sample_window_min::Integer, sample_window_max::Integer, perigenic_pad::Integer; deterministic::Bool=false)
+    #argument checking
+    !ispath(genome_path) && throw(ArgumentError("Bad genome path!"))
+    !ispath(genome_index_path) && throw(ArgumentError("Bad genome index path!"))
+    !ispath(gff3_path) && throw(ArgumentError("Bad gff3 path!"))
+    sample_set_length < 1 && throw(ArgumentError("Sample set length must be a positive integer!"))
+    sample_window_min < 1 || sample_window_max < 1 && throw(ArgumentError("Sample window minimum and maximum bounds must be positive integers!"))
+    sample_window_min >= sample_window_max && throw(ArgumentError("Sample window minimum size must be smaller than maximum size"))
+    perigenic_pad < 0 && throw(ArgumentError("Perigenic pad must be 0 or positive!"))
+
     coordinate_partitions = partition_genome_coordinates(gff3_path, perigenic_pad)
     sample_sets = DataFrame[]
     input_sample_jobs = RemoteChannel(()->Channel{Tuple}(length(coordinate_partitions))) #channel to hold sampling jobs
@@ -9,11 +18,17 @@ function setup_sample_jobs(genome_path::String, genome_index_path::String, gff3_
         put!(input_sample_jobs, (genome_path, genome_index_path, partition, partitionid, sample_set_length, sample_window_min, sample_window_max, deterministic))
     end
     progress_channel = RemoteChannel(()->Channel{Tuple}(20))
-    return (input_sample_jobs, completed_sample_jobs, progress_channel)
+    return (input_sample_jobs, completed_sample_jobs, progress_channel, sample_set_length)
 end
 
-function execute_sample_jobs(channels::Tuple{RemoteChannel,RemoteChannel,RemoteChannel}, worker_pool::Vector{Int64}, sample_set_length::Integer; partitions::Integer=3)
-    input_sample_channel, completed_sample_channel, progress_channel = channels
+function execute_sample_jobs(channels::Tuple{RemoteChannel,RemoteChannel,RemoteChannel,Integer}, worker_pool::Vector{Int64}; partitions::Integer=3)
+    input_sample_channel, completed_sample_channel, progress_channel, sample_set_length = channels
+
+    #argument checking
+    length(worker_pool) < 1 && throw(ArgumentError("Worker pool must contain one or more worker IDs!"))
+    !isready(input_sample_channel) && throw(ArgumentError("Input sample channel not ready, likely channel set from setup_sample_jobs passed incorrectly"))
+    sample_set_length < 1 && throw(ArgumentError("Sample set length must be a positive integer, likely channel set from setup_sample_jobs passed incorrectly"))
+
     #send sampling jobs to workers
     if isready(input_sample_channel) > 0
         @info "Sampling.."

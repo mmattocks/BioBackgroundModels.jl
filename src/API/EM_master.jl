@@ -1,6 +1,10 @@
 #function to setup an HMM chains dictionary and RemoteChannel for learning jobs, given a vector of state #s, order_nos, replicates to train, the dictionary to fill, the RemoteChannel and the training sequences
 #resumes any existing non-converged chains, otherwise initialises hmms for new chains given provided constants
 function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{LongSequence{DNAAlphabet{2}}}};  chains::Dict{Chain_ID,Vector{EM_step}}=Dict{Chain_ID,Vector{EM_step}}(), init_function::Function=autotransition_init)
+    #argument checking
+    length(job_ids) < 1 && throw(ArgumentError("Empty job id vector!"))
+    length(obs_sets) < 1 && throw(ArgumentError("Empty observation sets!"))
+
     no_input_hmms = length(job_ids)
     input_channel= RemoteChannel(()->Channel{Tuple}(no_input_hmms*3)) #channel to hold HMM learning jobs
     output_channel= RemoteChannel(()->Channel{Tuple}(Inf)) #channel to take EM iterates off of
@@ -27,6 +31,13 @@ function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{
 end
 
 function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, chains::Dict{Chain_ID,Vector{EM_step}},  input_channel::RemoteChannel, output_channel::RemoteChannel, chains_path::String; EM_func::Function=linear_step, delta_thresh=1e-3, max_iterates=5000, verbose=false)
+    #argument checking
+    length(worker_pool) < 1 && throw(ArgumentError("Worker pool must contain one or more worker IDs!"))
+    no_input_hmms < 1 && throw(ArgumentError("Zero input HMMs reported, likely job set from setup_EM_jobs passed incorrectly"))
+    length(chains) < 1 && throw(ArgumentError("No chains supplied, likely job set from setup_EM_jobs passed incorrectly"))
+    !isready(input_channel) && throw(ArgumentError("HMM input channel has no contents, likely job set from setup_EM_jobs passed incorrectly"))
+    !ispath(chains_path) && throw(ArgumentError("Bad path to chains save file!"))
+
     #SEND HMM FIT JOBS TO WORKERS
     if isready(input_channel) > 0
         @info "Fitting HMMs.."
