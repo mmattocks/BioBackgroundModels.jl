@@ -64,7 +64,7 @@ function updateProgress!(p::ProgressHMM; showvalues = Any[], valuecolor = :blue,
 
     if t > p.tlast+p.dt && !p.triggered
         elapsed_time = t - p.tfirst
-        msg = @sprintf "%s (value = %g => %g, iterate = %g, step time = %s)" p.desc p.val p.thresh p.counter hmss(p.steptime)
+        msg = @sprintf "%s (convergence: %g => %g, iterate: %g, step time: %s)" p.desc p.val p.thresh p.counter hmss(p.steptime)
         print(p.output, "\n" ^ (p.offset + p.numprintedvalues))
         ProgressMeter.move_cursor_up_while_clearing_lines(p.output, p.numprintedvalues)
         ProgressMeter.printover(p.output, msg, p.color)
