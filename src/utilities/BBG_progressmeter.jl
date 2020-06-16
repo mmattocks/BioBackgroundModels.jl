@@ -13,6 +13,7 @@ mutable struct ProgressHMM{T<:Real} <: ProgressMeter.AbstractProgress
     output::IO           # output stream into which the progress is written
     numprintedvalues::Integer   # num values printed below progress in last iteration
     offset::Integer             # position offset of progress bar (default is 0)
+    steptime::AbstractFloat
     function ProgressHMM{T}(thresh;
                                dt::Real=0.1,
                                desc::AbstractString="Progress: ",
@@ -22,7 +23,7 @@ mutable struct ProgressHMM{T<:Real} <: ProgressMeter.AbstractProgress
                                start_it::Integer=1) where T
         tfirst = tlast = time()
         printed = false
-        new{T}(thresh, dt, typemax(T), start_it, false, tfirst, tlast, printed, desc, color, output, 0, offset)
+        new{T}(thresh, dt, typemax(T), start_it, false, tfirst, tlast, printed, desc, color, output, 0, offset, 0.0)
     end
 end
 
@@ -32,9 +33,10 @@ ProgressHMM(thresh::Real, dt::Real=0.1, desc::AbstractString="Progress: ",
 
 ProgressHMM(thresh::Real, desc::AbstractString, offset::Integer=0, start_it::Integer=1) = ProgressHMM{typeof(thresh)}(thresh, desc=desc, offset=offset, start_it=start_it)
 
-function update!(p::ProgressHMM, val; options...)
+function update!(p::ProgressHMM, val, steptime; options...)
     p.val = val
     p.counter += 1
+    p.steptime = steptime
     updateProgress!(p; options...)
 end
 
@@ -62,7 +64,7 @@ function updateProgress!(p::ProgressHMM; showvalues = Any[], valuecolor = :blue,
 
     if t > p.tlast+p.dt && !p.triggered
         elapsed_time = t - p.tfirst
-        msg = @sprintf "%s (thresh = %g, value = %g, iterate = %g)" p.desc p.thresh p.val p.counter
+        msg = @sprintf "%s (value = %g => %g, iterate = %g, step time = %s)" p.desc p.val p.thresh p.counter hmss(p.steptime)
         print(p.output, "\n" ^ (p.offset + p.numprintedvalues))
         ProgressMeter.move_cursor_up_while_clearing_lines(p.output, p.numprintedvalues)
         ProgressMeter.printover(p.output, msg, p.color)
@@ -75,3 +77,11 @@ function updateProgress!(p::ProgressHMM; showvalues = Any[], valuecolor = :blue,
         p.printed = true
     end
 end
+
+            function hmss(dt)
+                isnan(dt) && return "NaN"
+                (h,r) = divrem(dt,60*60)
+                (m,r) = divrem(r, 60)
+                (isnan(h)||isnan(m)||isnan(r)) && return "NaN"
+                string(Int(h),":",Int(m),":",Int(ceil(r)))
+            end

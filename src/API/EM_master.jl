@@ -26,7 +26,7 @@ function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{
     return no_input_hmms, chains, input_channel, output_channel
 end
 
-function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, chains::Dict{Chain_ID,Vector{EM_step}},  input_channel::RemoteChannel, output_channel::RemoteChannel, chains_path::String,; EM_func::Function=linear_step, delta_thresh=1e-3, max_iterates=5000, verbose=false)
+function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, chains::Dict{Chain_ID,Vector{EM_step}},  input_channel::RemoteChannel, output_channel::RemoteChannel, chains_path::String; EM_func::Function=linear_step, delta_thresh=1e-3, max_iterates=5000, verbose=false)
     #SEND HMM FIT JOBS TO WORKERS
     if isready(input_channel) > 0
         @info "Fitting HMMs.."
@@ -45,16 +45,16 @@ function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, ch
 
     while job_counter > 0
         wait(output_channel)
-        workerid, jobid, iterate, hmm, log_p, delta, converged = take!(output_channel)
+        workerid, jobid, iterate, hmm, log_p, delta, converged, steptime = take!(output_channel)
         #either update an existing ProgressHMM meter or create a new one for the job
         if haskey(learning_meters, jobid) && iterate > 2
-                update!(learning_meters[jobid], delta)
+                update!(learning_meters[jobid], delta, steptime)
         else
             offset = workerid - 1
             if iterate <=2
-                learning_meters[jobid] = ProgressHMM(delta_thresh, "$jobid on worker $workerid converging:", offset, 2)
+                learning_meters[jobid] = ProgressHMM(delta_thresh, "$jobid on Wk $workerid converging:", offset, 2)
             else
-                learning_meters[jobid] = ProgressHMM(delta_thresh, "$jobid on worker $workerid converging:", offset, iterate)
+                learning_meters[jobid] = ProgressHMM(delta_thresh, "$jobid on wrkr $workerid converging:", offset, iterate)
             end
         end
         #push the hmm and related params to the results_dict
@@ -72,7 +72,7 @@ function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, ch
             job_counter -= 1
             ProgressMeter.update!(overall_meter, (no_input_hmms-job_counter))
             if !isready(input_channel) #if there are no more jobs to be learnt, retire the worker
-                rmprocs(workerid)
+                workerid!=1 && rmprocs(workerid)
             end
         end
     end
@@ -81,7 +81,7 @@ function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, ch
     converged_counter = 0
     unconverged_counter = 0
     for (id, chain) in chains
-        chain.converged == true ? (converged_counter += 1) : (unconverged_counter += 1)
+        chain[end].converged == true ? (converged_counter += 1) : (unconverged_counter += 1)
     end
 
     @info "Background HMM batch learning task complete, $converged_counter converged jobs, $unconverged_counter jobs failed to converge in $max_iterates iterates since job start."

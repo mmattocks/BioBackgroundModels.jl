@@ -11,29 +11,32 @@ function EM_converge!(hmm_jobs::RemoteChannel, output_hmms::RemoteChannel; EM_fu
         #build array of observation lengths
         obs_lengths = [findfirst(iszero,observations[o,:])-1 for o in 1:size(observations)[1]] #mask calculations here rather than mle_step to prevent recalculation every iterate
 
-        start_iterate == 1 && put!(output_hmms, (workerid, jobid, curr_iterate, hmm, 0, 0, false)); #on the first iterate return the initial HMM for the chain right away
+        start_iterate == 1 && put!(output_hmms, (workerid, jobid, curr_iterate, hmm, 0.0, 0.0, false, 0.0)); #on the first iterate return the initial HMM for the chain right away
         verbose && @info "Fitting HMM, start iterate $start_iterate, $jobid with $(size(hmm.π)[1]) states and $(length(hmm.D[1].support)) symbols..."
 
         curr_iterate += 1
         if curr_iterate == 2 #no delta value is available
+            start=time()
             new_hmm, last_norm = EM_func(hmm, observations, obs_lengths)
-            put!(output_hmms, (workerid, jobid, curr_iterate, new_hmm, last_norm, 0, false))
+            put!(output_hmms, (workerid, jobid, curr_iterate, new_hmm, last_norm, 0.0, false, time()-start))
         else #get the delta value from the channel-supplied job value to resume a chain properly
+            start=time()
             new_hmm, last_norm = EM_func(hmm, observations, obs_lengths)
             delta = abs(lps(job_norm, -last_norm))
-            put!(output_hmms, (workerid, jobid, curr_iterate, new_hmm, last_norm, delta, false))
+            put!(output_hmms, (workerid, jobid, curr_iterate, new_hmm, last_norm, delta, false, time()-start))
         end
 
         for i in curr_iterate:max_iterates
+            start=time()
             new_hmm, norm = EM_func(new_hmm, observations, obs_lengths)
             curr_iterate += 1
             delta = abs(lps(norm, -last_norm))
             if delta < delta_thresh
-                put!(output_hmms, (workerid, jobid, curr_iterate, new_hmm, norm, delta, true))
+                put!(output_hmms, (workerid, jobid, curr_iterate, new_hmm, norm, delta, true, time()-start))
                 verbose && @info "$jobid converged after $(curr_iterate-1) EM steps"
                 break
             else
-                put!(output_hmms, (workerid, jobid, curr_iterate, new_hmm, norm, delta, false))
+                put!(output_hmms, (workerid, jobid, curr_iterate, new_hmm, norm, delta, false, time()-start))
                 verbose && @info "$jobid EM step $(curr_iterate-1) delta $delta"
                 last_norm = norm
             end

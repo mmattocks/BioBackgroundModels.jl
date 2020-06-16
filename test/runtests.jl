@@ -1,4 +1,4 @@
-using BioBackgroundModels,BioSequences,DataFrames,Distributed,Distributions,ProgressMeter,Random,StatsFuns,Test
+using BioBackgroundModels,BioSequences,DataFrames,Distributed,Distributions,FASTX,ProgressMeter,Random,StatsFuns,Test
 import BioBackgroundModels: get_order_n_seqs, code_seqs, make_padded_df, add_partition_masks!, partition_genome_coordinates, setup_sample_jobs, meta_to_feature_coord, get_strand_dict, build_scaffold_seq_dict, get_feature_params_from_metacoord, determine_sample_window, fetch_sequence, get_sample_set, assert_hmm, linear_step, get_BGHMM_symbol_lh,make_padded_df,add_partition_masks!,BGHMM_likelihood_calc
 
 include("synthetic_sequence_gen.jl")
@@ -570,4 +570,25 @@ end
         workerid, jobid, iterate, hmm4, log_p, epsilon, converged = take!(output_hmms)
     end
     @test converged==1
+end
+
+@testset "BBG API tests..." begin
+    genome_reader = open(FASTA.Reader, genome, index=index)
+    seq=LongSequence{DNAAlphabet{2}}(FASTA.sequence(genome_reader["CM002885.2"]))
+    seqdict = Dict("test"=>[seq for i in 1:3])
+
+
+    job_ids=Vector{Chain_ID}()
+    Ks=[1,2,4,6]; order_nos=[0,1,2]
+    for K in Ks, order in order_nos
+        push!(job_ids, Chain_ID("test", K, order, 1))
+    end
+
+    wkpool=addprocs(1, topology=:master_worker)
+    @everywhere using BioBackgroundModels
+
+    em_jobset=setup_EM_jobs!(job_ids, seqdict)
+    execute_EM_jobs!(wkpool, em_jobset..., "testchains", delta_thresh=.1)
+
+    rm("testchains")
 end
