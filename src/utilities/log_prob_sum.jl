@@ -3,7 +3,7 @@
                     prob = sum(adjuvants) ; isnan(prob) ? - Inf : prob
                 end
                 
-                function lps(base, adjuvants ...)
+                function lps(base, adjuvants...)
                     prob = base+sum(adjuvants) ; isnan(prob) ? -Inf : prob
                 end
 

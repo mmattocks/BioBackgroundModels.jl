@@ -4,7 +4,6 @@ struct CompoundAlphabet
   symbols::Dict{Mer{DNAAlphabet{2}},Integer}
 end
 
-#holds a DNA sequence, a higher-order index/kmer sequence, the alphabet used to produce the Mer{DNAAlphabet{2}}s, and the order number
 struct N_Order_ntSequence
   alphabet::CompoundAlphabet
   seq_lengths::Vector{Integer}
@@ -12,7 +11,7 @@ struct N_Order_ntSequence
 end
 
 #build a CompoundAlphabet for DNA of some order_no
-function compound_DNA_alphabet(alphabet::Tuple, order_no::Integer)
+function CompoundAlphabet(alphabet::Tuple, order_no::Integer)
   symbols = Array{Mer{DNAAlphabet{2}}}(undef, length(alphabet)^(order_no+1))
   tuples = Array{Tuple}
   if order_no > 0
@@ -70,7 +69,7 @@ function get_order_n_seqs(seqs::Vector{LongSequence{DNAAlphabet{2}}}, order_no::
         push!(length_vec, length(seq))
     end
 
-    return nordseqs = N_Order_ntSequence(compound_DNA_alphabet(base_tuple, order_no), length_vec, kmer_vecs)
+    return nordseqs = N_Order_ntSequence(CompoundAlphabet(base_tuple, order_no), length_vec, kmer_vecs)
 end
 
 #convert tuple kmers to symbol codes

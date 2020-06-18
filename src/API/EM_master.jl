@@ -26,23 +26,26 @@ function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{
             put!(input_channel, (id, 1, hmm, 0.0, code_dict[(id.obs_id, id.order)])) 
         end
     end
-
     return no_input_hmms, chains, input_channel, output_channel
 end
 
-function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, chains::Dict{Chain_ID,Vector{EM_step}},  input_channel::RemoteChannel, output_channel::RemoteChannel, chains_path::String; EM_func::Function=linear_step, delta_thresh=1e-3, max_iterates=5000, verbose=false)
+function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, chains::Dict{Chain_ID,Vector{EM_step}},  input_channel::RemoteChannel, output_channel::RemoteChannel, chains_path::String; load_dict=Dict{Int64,LoadConfig}(), EM_func::Function=linear_step, delta_thresh=1e-3, max_iterates=5000, verbose=false)
     #argument checking
     length(worker_pool) < 1 && throw(ArgumentError("Worker pool must contain one or more worker IDs!"))
     no_input_hmms < 1 && throw(ArgumentError("Zero input HMMs reported, likely job set from setup_EM_jobs passed incorrectly"))
     length(chains) < 1 && throw(ArgumentError("No chains supplied, likely job set from setup_EM_jobs passed incorrectly"))
-    !isready(input_channel) && throw(ArgumentError("HMM input channel has no contents, likely job set from setup_EM_jobs passed incorrectly"))
+    !isready(input_channel) && throw(ArgumentError("HMM input channel has no contents, likely job set from setup_EM_jobs already executed"))
 
     #SEND HMM FIT JOBS TO WORKERS
     if isready(input_channel) > 0
         @info "Fitting HMMs.."
         #WORKERS FIT HMMS
         for worker in worker_pool
-            remote_do(EM_converge!, worker, input_channel, output_channel, EM_func=EM_func, delta_thresh=delta_thresh, max_iterates=max_iterates, verbose=verbose)
+            if worker in keys(load_dict)
+                remote_do(EM_converge!, worker, input_channel, output_channel, no_input_hmms, load_config=load_dict[worker], EM_func=EM_func, delta_thresh=delta_thresh, max_iterates=max_iterates, verbose=verbose)
+            else
+                remote_do(EM_converge!, worker, input_channel, output_channel, no_input_hmms, EM_func=EM_func, delta_thresh=delta_thresh, max_iterates=max_iterates, verbose=verbose)
+            end
         end
     else
         @warn "No input HMMs (all already converged?), skipping fitting.."

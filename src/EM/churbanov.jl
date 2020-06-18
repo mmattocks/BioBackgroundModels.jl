@@ -63,4 +63,11 @@ end
                     return βoi_T, Tijm_T, Eoγim_T
                 end
 
+                function churbanov_llhs(hmm, observation)
+                    lls = zeros(length(observation),length(hmm.D))
+                    Threads.@threads for d in 1:length(hmm.D)
+                        lls[:,d] = logpdf.(hmm.D[d], observation)
+                    end
+                    return lls
+                end
 

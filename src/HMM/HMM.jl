@@ -46,14 +46,14 @@ function assert_hmm(π0::AbstractVector,
     !isprobvec(π0) && throw(ArgumentError("Initial state vector π0 is not a valid probability vector!")) 
     !istransmat(π) && throw(ArgumentError("Transition matrix π is not valid!")) 
 
-    !all(length.(D) .== length(D[1])) && throw(ArgumentError("All distributions must have the same dimensions"))
-    !(length(π0) == size(π,1) == length(D)) && throw("Length of initial state vector π0, dimension of transition matrix π, and number of distributions D are not the same!")
+    !all([length(d.p) for d in D] .== length(D[1].p)) && throw(ArgumentError("All distributions must have the same dimensions"))
+    !(length(π0) == size(π,1) == length(D)) && throw(ArgumentError("Length of initial state vector π0, dimension of transition matrix π, and number of distributions D are not the same!"))
     return true
 end
 
 issquare(A::AbstractMatrix) = size(A,1) == size(A,2)
 istransmat(A::AbstractMatrix) = issquare(A) && all([isprobvec(A[i,:]) for i in 1:size(A,1)])
 
-size(hmm::AbstractHMM, dim = :) = (length(hmm.D), length(hmm.D[1]))[dim]
+size(hmm::AbstractHMM, dim = :) = (length(hmm.D), length(hmm.D[1].p))[dim]
 
 copy(hmm::HMM) = HMM(copy(hmm.π0), copy(hmm.π), copy(hmm.D))

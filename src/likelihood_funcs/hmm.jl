@@ -1,21 +1,8 @@
-#multisequence competent lls fn
-function bw_llhs(hmm, observations)
-    lls = zeros(length(hmm.D), size(observations)...)
-    Threads.@threads for d in 1:length(hmm.D)
-        (lls[d,:,:] = logpdf.(hmm.D[d], observations))
-    end
-    return lls
+function obs_lh_given_hmm(observations, hmm; linear=true)
+    linear ? (return linear_likelihood(observations, hmm)) : (return bw_likelihood(Matrix(transpose(observations)), hmm))
 end
 
-function churbanov_llhs(hmm, observation)
-    lls = zeros(length(observation),length(hmm.D))
-    Threads.@threads for d in 1:length(hmm.D)
-        lls[:,d] = logpdf.(hmm.D[d], observation)
-    end
-    return lls
-end
-
-function obs_set_likelihood(hmm, observations)
+function bw_likelihood(observations, hmm)
     obs_lengths = [findfirst(iszero,observations[:,o])-1 for o in 1:size(observations)[2]]
 
     lls = bw_llhs(hmm, observations)
@@ -24,14 +11,14 @@ function obs_set_likelihood(hmm, observations)
 
     O = size(lls)[3] #the last T value is the 0 end marker of the longest T
     log_pobs = zeros(O)
-    for o in 1:O
+    Threads.@threads for o in 1:O
         log_pobs[o] = logsumexp(lps.(log_α[:,1,o], log_β[:,1,o]))
     end
 
     return sum(log_pobs)
 end
 
-function linear_likelihood(hmm::HMM, observations::Matrix)
+function linear_likelihood(observations, hmm)
     O = size(observations)[1]; obs_lengths = [findfirst(iszero,observations[o,:])-1 for o in 1:O]
     a = log.(hmm.π); π0 = log.(hmm.π0)
     N = length(hmm.D); D = length(hmm.D[1].support); b = [log(hmm.D[m].p[γ]) for m in 1:N, γ in 1:D]

@@ -1,29 +1,30 @@
-struct Chain_ID{I<:Integer}
-    obs_id::String
-    K::I
-    order::I
-    replicate::I
-    Chain_ID{I}(ob,K,or,r) where {I} = assert_chain_id(K,or,r) && new(ob,K,or,r)
+struct Chain_ID
+    obs_id::AbstractString
+    K::Integer
+    order::Integer
+    replicate::Integer
+    Chain_ID(obs_id,K,order,replicate) = assert_chain_id(K,order,replicate) && new(obs_id,K,order,replicate)
 end
 
 function assert_chain_id(K, order, replicate)
     K < 1 && throw(ArgumentError("Chain_ID K (# of hmm states) must be a positive integer!"))
     order < 0 && throw(ArgumentError("Chain_ID symbol order must be zero or a positive integer!"))
     replicate < 1 && throw(ArgumentError("Chain_ID replicate must be a positive integer!"))
+    return true
 end
 
-struct EM_step{F<:AbstractFloat,I<:Integer}
-    iterate::I
+struct EM_step
+    iterate::Integer
     hmm::HMM
-    log_p::F
-    delta::F
+    log_p::AbstractFloat
+    delta::AbstractFloat
     converged::Bool
-    EM_step{F,I}(i,h,lp,d,c) where {F,I} = assert_step(i,h,lp) && new(i, h, lp, d, c)
+    EM_step(iterate,hmm,log_p,delta,converged)=assert_step(iterate,hmm,log_p) && new(iterate, hmm, log_p, delta, converged)
 end
 
 function assert_step(iterate, hmm, log_p)
     iterate < 1 && throw(ArgumentError("EM_step iterate number must be a positive integer!"))
-    assert_hmm(hmm)
+    assert_hmm(hmm.π0, hmm.π, hmm.D)
     log_p > 0.0 && throw(ArgumentError("EM_step log probability value must be 0 or negative!"))
     return true
 end

@@ -82,6 +82,13 @@ function bw_step(hmm::AbstractHMM{F}, observations, obs_lengths) where F
 
     return typeof(hmm)(new_π0, new_π, D), lps(log_pobs)
 end
+                function bw_llhs(hmm, observations)
+                    lls = zeros(length(hmm.D), size(observations)...)
+                    Threads.@threads for d in 1:length(hmm.D)
+                        (lls[d,:,:] = logpdf.(hmm.D[d], observations))
+                    end
+                    return lls
+                end
                 #Multisequence competent log implementations of forward and backwards algos
                 function messages_forwards_log(init_distn, trans_matrix, log_likelihoods, obs_lengths)
                     log_alphas = zeros(size(log_likelihoods))
