@@ -329,9 +329,9 @@ end
 
 @testset "likelihood_funcs/hmm.jl & bg_lh_matrix.jl functions" begin
     pvec = [.4,.3,.2,.1]
-    pi = ones(1,1)
+    trans = ones(1,1)
     D = [Categorical(pvec)]
-    hmm = HMM(pi, D)
+    hmm = HMM(trans, D)
 
     testseq=zeros(Int64,1,5)
     testseq[1:4] = [1,2,3,4]
@@ -341,10 +341,10 @@ end
     @test isapprox(sum(get_BGHMM_symbol_lh(testseq,hmm)), obs_lh_given_hmm(testseq,hmm,linear=false))
 
     pvec=[.25,.25,.25,.25]
-    pi = [.9 .1
+    trans = [.9 .1
          .1 .9]
     D = [Categorical(pvec), Categorical(pvec)]
-    hmm = HMM(pi, D)
+    hmm = HMM(trans, D)
 
     @test isapprox(obs_lh_given_hmm(testseq,hmm),obs_lh_given_hmm(testseq,hmm,linear=false))
     @test isapprox(sum(get_BGHMM_symbol_lh(testseq,hmm)), obs_lh_given_hmm(testseq,hmm))
@@ -359,9 +359,9 @@ end
     Dper = [Categorical([.15, .35, .35, .15]),Categorical([.4, .1, .1, .4])]
     Dint = [Categorical([.4, .1, .1, .4]),Categorical([.45, .05, .05, .45])]
     BGHMM_dict = Dict{String,Tuple{HMM, Int64, Float64}}()
-    BGHMM_dict["exon"] = (HMM(pi, Dex), 0, 0)
-    BGHMM_dict["periexonic"] = (HMM(pi, Dper), 0, 0)
-    BGHMM_dict["intergenic"] = (HMM(pi, Dint), 0, 0)
+    BGHMM_dict["exon"] = (HMM(trans, Dex), 0, 0)
+    BGHMM_dict["periexonic"] = (HMM(trans, Dper), 0, 0)
+    BGHMM_dict["intergenic"] = (HMM(trans, Dint), 0, 0)
 
     position_length=141;perigenic_pad=250;
     position_df = make_padded_df(posfasta, gff, genome, index, position_length)
@@ -397,6 +397,9 @@ end
     pno=get_order_n_seqs([periexonic_frag],0)
     pcode=code_seqs(pno)
     plh=get_BGHMM_symbol_lh(pcode, BGHMM_dict["periexonic"][1])
+    println("plh: $plh")
+    println("lh_matrix[1:151,1]: $(lh_matrix[1:151,1])")
+
     @test isapprox(lh_matrix[1:151,1], plh)
 
     exonic_frag=LongSequence{DNAAlphabet{2}}(reverse_complement(seq[511:570]))
