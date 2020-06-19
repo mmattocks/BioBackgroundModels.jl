@@ -390,6 +390,9 @@ end
     @test all(position_df.MaskMatrix[1][212:241,1].==2)
     @test all(position_df.MaskMatrix[1][242:end,1].==3)
 
+    println("PadSeq: $(position_df.PadSeq)")
+    println("Mask: $(position_df.MaskMatrix)")
+
     lh_matrix=BGHMM_likelihood_calc(position_df,BGHMM_dict)
     @test size(lh_matrix)==(position_length*2,1)
 
