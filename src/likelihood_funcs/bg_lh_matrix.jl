@@ -84,7 +84,7 @@ function fragment_observations_by_BGHMM(seqs::AbstractVector, masks::AbstractVec
             findnext(!isequal(curr_partition),mask[:,1],frag_start) != nothing ? frag_end = findnext(!isequal(curr_partition),mask[:,1],frag_start) -1 : frag_end = length(obs_seq) #find the next position in the frag that has a different partition mask value from hte current one and set that position-1 to frag end, alternately frag end is end of the overall  sequence 
             frag = obs_seq[frag_start:frag_end] #get the frag bases
             if curr_strand == -1 #if the fragment is reverse stranded
-                frag = reverse_complement(frag) #use the reverse complement sequence
+                reverse_complement!(frag) #use the reverse complement sequence
             end
 
             push!(likelihood_jobs,(jobid, frag)) #put the frag in the jobs vec
