@@ -397,7 +397,7 @@ end
     lh_matrix=BGHMM_likelihood_calc(position_df,BGHMM_dict)
     @test size(lh_matrix)==(position_length*2,1)
 
-    periexonic_frag=LongSequence{DNAAlphabet{2}}(reverse_complement(seq[360:510]))
+    periexonic_frag=LongSequence{DNAAlphabet{2}}(seq[360:510])
     println("periexonic_frag: $periexonic_frag")
     pno=get_order_n_seqs([periexonic_frag],0)
     pcode=code_seqs(pno)
@@ -407,7 +407,7 @@ end
 
     @test isapprox(lh_matrix[1:151,1], plh)
 
-    exonic_frag=LongSequence{DNAAlphabet{2}}(reverse_complement(seq[511:570]))
+    exonic_frag=LongSequence{DNAAlphabet{2}}(seq[511:570])
     eno=get_order_n_seqs([exonic_frag],0)
     ecode=code_seqs(eno)
     elh=get_BGHMM_symbol_lh(ecode, BGHMM_dict["exon"][1])
