@@ -1,14 +1,14 @@
 function print_synthetic_fasta(path::String,line_length::Integer=80)
-	header=">CM002885.2.1 BGHMM Synthetic chromosome for tests\n"
+	header=">CM002885.2.1 BioBackgroundModels Synthetic chromosome for tests\n"
 	write(path, header, format_lines(generate_synthetic_seq(),line_length))
 end
 
 function print_synthetic_index(path::String)
-	write(path, "CM002885.2	1000	5	80	81\n")
+	write(path, "CM002885.2.1	1000	5	80	81\n")
 end
 
 function print_synthetic_position(path::String)
-	write(path, ">1 start 501 end 850 smt_pos 111 smt_value 205.11821 fuzziness_score 43.53698\n",generate_synthetic_seq()[501:800],"\n")
+	write(path, ">1 start 501 end 641 smt_pos 111 smt_value 205.11821 fuzziness_score 43.53698\n",generate_synthetic_seq()[501:641],"\n")
 end
 
 function print_synthetic_gff(path::String)
