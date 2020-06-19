@@ -390,13 +390,14 @@ end
     @test all(position_df.MaskMatrix[1][212:241,1].==2)
     @test all(position_df.MaskMatrix[1][242:end,1].==3)
 
-    println("PadSeq: $(position_df.PadSeq)")
-    println("Mask: $(position_df.MaskMatrix)")
+    println("PadSeq: $(position_df.PadSeq[1])")
+    println("Mask: $(position_df.MaskMatrix[1])")
 
     lh_matrix=BGHMM_likelihood_calc(position_df,BGHMM_dict)
     @test size(lh_matrix)==(position_length*2,1)
 
     periexonic_frag=LongSequence{DNAAlphabet{2}}(reverse_complement(seq[360:510]))
+    println("periexonic_frag: $periexonic_frag")
     pno=get_order_n_seqs([periexonic_frag],0)
     pcode=code_seqs(pno)
     plh=get_BGHMM_symbol_lh(pcode, BGHMM_dict["periexonic"][1])
