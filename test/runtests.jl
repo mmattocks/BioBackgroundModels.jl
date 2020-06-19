@@ -368,6 +368,7 @@ end
 
     reader=open(FASTA.Reader, genome, index=index)
     seq=FASTA.sequence(reader["CM002885.2.1"])
+    println(seq)
     @test position_df.Start[1]==501
     @test position_df.End[1]==641
     @test position_df.PadSeq[1]==seq[360:641]
