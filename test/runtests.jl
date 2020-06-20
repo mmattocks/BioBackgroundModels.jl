@@ -1,6 +1,6 @@
 using BioBackgroundModels,BioSequences,DataFrames,Distributed,Distributions,FASTX,ProgressMeter,Random,StatsFuns,Test
-import BioBackgroundModels: autotransition_init, load_balancer, CompoundAlphabet, get_order_n_seqs, code_seqs, code_job_obs, make_padded_df, add_partition_masks!, partition_genome_coordinates, setup_sample_jobs, meta_to_feature_coord, get_strand_dict, build_scaffold_seq_dict, get_feature_params_from_metacoord, determine_sample_window, fetch_sequence, get_sample_set, assert_hmm, linear_step, get_BGHMM_symbol_lh,make_padded_df,add_partition_masks!,BGHMM_likelihood_calc,linear_likelihood
-
+import BioBackgroundModels: autotransition_init, load_balancer, CompoundAlphabet, get_order_n_seqs, code_seqs, code_job_obs, make_padded_df, add_partition_masks!, partition_genome_coordinates, divide_partitions_by_scaffold, mask_sequence_by_partition, find_position_partition, setup_sample_jobs, rectify_identifier, add_metacoordinates!, meta_to_feature_coord, get_feature_row_index, get_strand_dict, build_scaffold_seq_dict, get_feature_params_from_metacoord, determine_sample_window, fetch_sequence, get_sample_set, get_sample, assert_hmm, linear_step, get_BGHMM_symbol_lh,make_padded_df,add_partition_masks!,BGHMM_likelihood_calc,linear_likelihood, t_add_categorical_counts!
+import Serialization: deserialize
 include("synthetic_sequence_gen.jl")
 include("ref_fns.jl")
 
@@ -189,6 +189,16 @@ end
     @test code_dict[("test1",0)]==target0
     @test code_dict[("test1",2)]==target2
     @test code_dict[("test2",0)]==target0
+
+    #test type selection for high order numbers
+    o5_nos=get_order_n_seqs(test_seqs,5)
+    o5_codes=code_seqs(o5_nos)
+    @test typeof(o5_codes)==Matrix{UInt16}
+
+    o7_nos=get_order_n_seqs(test_seqs,7)
+    o7_codes=code_seqs(o7_nos)
+    @test typeof(o7_codes)==Matrix{UInt32}
+
 end
 
 @testset "genome_sampling/partition_masker.jl functions" begin
@@ -216,9 +226,27 @@ end
     @test sum(mm[idx:idx+29,1] .== 2)==length(mm[idx:idx+29,1])
     idx+=30#pos601
     @test sum(mm[idx:idx+40,1] .== 3)==length(mm[idx:idx+40,1])
+
+    #test exception
+    position_df = make_padded_df(posfasta, gff, genome, index, position_pad)
+
+    partition_coords_dict=partition_genome_coordinates(gff, perigenic_pad)
+    partitioned_scaffolds=divide_partitions_by_scaffold(partition_coords_dict)
+    scaffold_coords_dict = Dict{String,DataFrame}()
+    scaffold="1"
+    for ((partition, part_scaffold), df) in partitioned_scaffolds
+        if scaffold == part_scaffold
+            scaffold_coords_dict[partition] = df
+        end
+    end
+
+    @test_throws DomainError mask_sequence_by_partition(1001,151,scaffold_coords_dict)
 end
 
 @testset "genome_sampling/sequence_sampler.jl functions" begin
+    #rectifier tests
+    @test rectify_identifier("1")=="1"
+
     partitions = 3 #exonic, periexonic, intragenic
     sample_set_length=100
     min_sample_window=5
@@ -313,6 +341,21 @@ end
         collected_counter += 1
     end
 
+    #get_sample entire feature selection
+    coordinate_partitions = partition_genome_coordinates(gff, perigenic_pad)
+    partition_id="exon"
+    partition=coordinate_partitions[partition_id]
+    add_metacoordinates!(partition)
+    metacoordinate_bitarray=trues(partition.MetaEnd[end])
+    scaffold_sequence_record_dict = build_scaffold_seq_dict(genome, index)
+
+    #test fetch_sequence strand char ArgumentError
+    @test_throws ArgumentError fetch_sequence("1", Dict{String,LongSequence}("1"=>LongSequence{DNAAlphabet{2}}("AAAAAAAAAAAAA")), 1, 5, 'L')
+
+    #test get_feature_row_index ArgumentError
+    @test_throws DomainError get_feature_row_index(partition,0)
+
+    @test length(get_sample(metacoordinate_bitarray, 1, 250, partition, scaffold_sequence_record_dict, "exon")[6])==60
     
     synthetic_seq = BioSequences.LongSequence{DNAAlphabet{2}}(generate_synthetic_seq())
     for (partid, df) in sample_record_dfs
@@ -406,125 +449,7 @@ end
     @test isapprox(lh_matrix[152:211,1],reverse(elh))
 end
 
-@testset "mle_step functions" begin
-    # "Setting up for MLE function tests.."
-    π = fill((1/6),6,6)
-    D = [Categorical(ones(4)/4), Categorical([.7,.05,.15,.1]),Categorical([.15,.35,.4,.1]), Categorical([.6,.15,.15,.1]),Categorical([.1,.4,.4,.1]), Categorical([.2,.2,.3,.3])]
-    hmm = HMM(π, D)
-    log_π = log.(hmm.π)
-
-    obs = zeros(Int64,1,250)
-    obs[1:249] = rand(1:4,249)
-    obs_lengths=[249]
-    # "Testing mle_step..."
-
-    #verify that above methods independently produce equivalent output, and that this is true of multiple identical obs, but not true of different obs sets
-    mouchet_hmm = mouchet_mle_step(hmm, obs[1:249])
-
-    new_hmm = linear_step(hmm, obs, obs_lengths)
-
-    ms_sng = BioBackgroundModels.bw_step(hmm, Array(transpose(obs)), obs_lengths)
-
-    dblobs = zeros(Int64, 2,250)
-    dblobs[1,1:249] = obs[1:249]
-    dblobs[2,1:249] = obs[1:249]
-    dblobs_lengths=[249,249]
-    dbl_hmm = linear_step(hmm, dblobs, dblobs_lengths)
-
-
-    ms_dbl =BioBackgroundModels.bw_step(hmm, Array(transpose(dblobs)),dblobs_lengths)
-
-    otherobs = deepcopy(dblobs)
-    otherobs[2,1:249] = rand(1:4,249)
-    if otherobs[1,1]==otherobs[2,1]
-        otherobs[1,1]==1&&(otherobs[2,1]=2)
-        otherobs[1,1]==2&&(otherobs[2,1]=3)
-        otherobs[1,1]==3&&(otherobs[2,1]=4)
-        otherobs[1,1]==4&&(otherobs[2,1]=1)
-    end
-    
-    other_hmm = linear_step(hmm, otherobs, dblobs_lengths)
-
-    ms_hmm = BioBackgroundModels.bw_step(hmm, Array(transpose(otherobs)),dblobs_lengths)
-
-    for n in fieldnames(typeof(new_hmm[1]))
-        if n == :D
-            for (d, dist) in enumerate(D)
-            @test isapprox(new_hmm[1].D[d].support,mouchet_hmm[1].D[d].support)
-            @test isapprox(new_hmm[1].D[d].p,mouchet_hmm[1].D[d].p)
-            @test new_hmm[1].D[d].support==ms_sng[1].D[d].support
-            @test isapprox(new_hmm[1].D[d].p,ms_sng[1].D[d].p)
-            @test new_hmm[1].D[d].support==dbl_hmm[1].D[d].support
-            @test isapprox(new_hmm[1].D[d].p,dbl_hmm[1].D[d].p)
-            @test new_hmm[1].D[d].support==ms_dbl[1].D[d].support
-            @test isapprox(new_hmm[1].D[d].p,ms_dbl[1].D[d].p)
-            @test new_hmm[1].D[d].support==other_hmm[1].D[d].support
-            @test ms_hmm[1].D[d].support==other_hmm[1].D[d].support
-            @test !isapprox(new_hmm[1].D[d].p, other_hmm[1].D[d].p)
-            @test isapprox(ms_hmm[1].D[d].p, other_hmm[1].D[d].p, atol=.005)
-
-            end
-        else
-            @test isapprox(getfield(new_hmm[1],n), getfield(mouchet_hmm[1],n))
-            @test isapprox(getfield(new_hmm[1],n), getfield(ms_sng[1],n))
-
-            @test isapprox(getfield(new_hmm[1],n), getfield(dbl_hmm[1],n))
-            @test isapprox(getfield(new_hmm[1],n), getfield(ms_dbl[1],n))
-
-            @test !isapprox(getfield(new_hmm[1],n), getfield(other_hmm[1],n))
-            @test isapprox(getfield(ms_hmm[1],n), getfield(other_hmm[1],n),atol=.01)
-
-        end
-    end
-
-    @test ms_sng[2] == new_hmm[2] == mouchet_hmm[2] != dbl_hmm[2] == ms_dbl[2] != other_hmm[2] == ms_hmm[2]
-
-    # "Testing fit_mle!..."
-
-    #test fit_mle! function
-    input_hmms= RemoteChannel(()->Channel{Tuple}(1))
-    output_hmms = RemoteChannel(()->Channel{Tuple}(30))
-    chainid=Chain_ID("Test",6,0,1)
-    put!(input_hmms, (chainid, 2, hmm, 0.0, obs))
-    BioBackgroundModels.EM_converge!(input_hmms, output_hmms, 1; max_iterates=4, verbose=true)
-    wait(output_hmms)
-    workerid, jobid, iterate, hmm3, log_p, delta, converged = take!(output_hmms)
-    @test jobid == chainid
-    @test iterate == 3
-    @test BioBackgroundModels.assert_hmm(hmm3.π0, hmm3.π, hmm3.D)
-    @test size(hmm3) == size(hmm) == (6,4)
-    @test log_p < 1
-    @test log_p == linear_likelihood(obs, hmm)
-    @test converged == false
-    wait(output_hmms)
-    workerid, jobid, iterate, hmm4, log_p, delta, converged = take!(output_hmms)
-    @test jobid == chainid
-    @test iterate == 4
-    @test BioBackgroundModels.assert_hmm(hmm4.π0, hmm4.π, hmm4.D)
-    @test size(hmm4) == size(hmm) == (6,4)
-    @test log_p < 1
-    @test log_p == linear_likelihood(obs, hmm3)
-    @test converged == false
-
-    # "Test convergence.."
-    obs=zeros(Int64, 4, 1001)    
-    for o in 1:size(obs)[1]
-        obsl=rand(100:1000)
-        obs[o,1:obsl]=rand(1:4,obsl)
-    end
-    input_hmms= RemoteChannel(()->Channel{Tuple}(1))
-    output_hmms = RemoteChannel(()->Channel{Tuple}(30))
-    put!(input_hmms, (chainid, 2, hmm, 0.0, obs))
-    BioBackgroundModels.EM_converge!(input_hmms, output_hmms, 1; delta_thresh=.05, max_iterates=100, verbose=true)
-    wait(output_hmms)
-    workerid, jobid, iterate, hmm4, log_p, delta, converged = take!(output_hmms)
-    while isready(output_hmms)
-        workerid, jobid, iterate, hmm4, log_p, delta, converged = take!(output_hmms)
-    end
-    @test converged==1
-end
-
-@testset "Baum-Welch subfunctions" begin
+@testset "EM/baum-welch.jl MS_HMMBase equivalency and functions" begin
     π = [.5 .5
          .5 .5]
     D = [Categorical(ones(4)/4), Categorical([.7,.1,.1,.1])]
@@ -743,9 +668,131 @@ end
         workerid, jobid, iterate, hmm4, log_p, epsilon, converged = take!(output_hmms)
     end
     @test converged==1
+
+    #test t_add_categorical_counts DimensionMismatch
+    @test_throws DimensionMismatch t_add_categorical_counts!(zeros(4), zeros(UInt8,2,3), zeros(2,2))
+
 end
 
-@testset "setup_EM_jobs API" begin
+@testset "EM/churbanov.jl Baum-Welch equivalency and functions" begin
+    # "Setting up for MLE function tests.."
+    π = fill((1/6),6,6)
+    D = [Categorical(ones(4)/4), Categorical([.7,.05,.15,.1]),Categorical([.15,.35,.4,.1]), Categorical([.6,.15,.15,.1]),Categorical([.1,.4,.4,.1]), Categorical([.2,.2,.3,.3])]
+    hmm = HMM(π, D)
+    log_π = log.(hmm.π)
+
+    obs = zeros(Int64,1,250)
+    obs[1:249] = rand(1:4,249)
+    obs_lengths=[249]
+    # "Testing mle_step..."
+
+    #verify that above methods independently produce equivalent output, and that this is true of multiple identical obs, but not true of different obs sets
+    mouchet_hmm = mouchet_mle_step(hmm, obs[1:249])
+
+    new_hmm = linear_step(hmm, obs, obs_lengths)
+
+    ms_sng = BioBackgroundModels.bw_step(hmm, Array(transpose(obs)), obs_lengths)
+
+    dblobs = zeros(Int64, 2,250)
+    dblobs[1,1:249] = obs[1:249]
+    dblobs[2,1:249] = obs[1:249]
+    dblobs_lengths=[249,249]
+    dbl_hmm = linear_step(hmm, dblobs, dblobs_lengths)
+
+
+    ms_dbl =BioBackgroundModels.bw_step(hmm, Array(transpose(dblobs)),dblobs_lengths)
+
+    otherobs = deepcopy(dblobs)
+    otherobs[2,1:249] = rand(1:4,249)
+    if otherobs[1,1]==otherobs[2,1]
+        otherobs[1,1]==1&&(otherobs[2,1]=2)
+        otherobs[1,1]==2&&(otherobs[2,1]=3)
+        otherobs[1,1]==3&&(otherobs[2,1]=4)
+        otherobs[1,1]==4&&(otherobs[2,1]=1)
+    end
+    
+    other_hmm = linear_step(hmm, otherobs, dblobs_lengths)
+
+    ms_hmm = BioBackgroundModels.bw_step(hmm, Array(transpose(otherobs)),dblobs_lengths)
+
+    for n in fieldnames(typeof(new_hmm[1]))
+        if n == :D
+            for (d, dist) in enumerate(D)
+            @test isapprox(new_hmm[1].D[d].support,mouchet_hmm[1].D[d].support)
+            @test isapprox(new_hmm[1].D[d].p,mouchet_hmm[1].D[d].p)
+            @test new_hmm[1].D[d].support==ms_sng[1].D[d].support
+            @test isapprox(new_hmm[1].D[d].p,ms_sng[1].D[d].p)
+            @test new_hmm[1].D[d].support==dbl_hmm[1].D[d].support
+            @test isapprox(new_hmm[1].D[d].p,dbl_hmm[1].D[d].p)
+            @test new_hmm[1].D[d].support==ms_dbl[1].D[d].support
+            @test isapprox(new_hmm[1].D[d].p,ms_dbl[1].D[d].p)
+            @test new_hmm[1].D[d].support==other_hmm[1].D[d].support
+            @test ms_hmm[1].D[d].support==other_hmm[1].D[d].support
+            @test !isapprox(new_hmm[1].D[d].p, other_hmm[1].D[d].p)
+            @test isapprox(ms_hmm[1].D[d].p, other_hmm[1].D[d].p, atol=.005)
+
+            end
+        else
+            @test isapprox(getfield(new_hmm[1],n), getfield(mouchet_hmm[1],n))
+            @test isapprox(getfield(new_hmm[1],n), getfield(ms_sng[1],n))
+
+            @test isapprox(getfield(new_hmm[1],n), getfield(dbl_hmm[1],n))
+            @test isapprox(getfield(new_hmm[1],n), getfield(ms_dbl[1],n))
+
+            @test !isapprox(getfield(new_hmm[1],n), getfield(other_hmm[1],n))
+            @test isapprox(getfield(ms_hmm[1],n), getfield(other_hmm[1],n),atol=.01)
+
+        end
+    end
+
+    @test ms_sng[2] == new_hmm[2] == mouchet_hmm[2] != dbl_hmm[2] == ms_dbl[2] != other_hmm[2] == ms_hmm[2]
+
+    # "Testing fit_mle!..."
+
+    #test fit_mle! function
+    input_hmms= RemoteChannel(()->Channel{Tuple}(1))
+    output_hmms = RemoteChannel(()->Channel{Tuple}(30))
+    chainid=Chain_ID("Test",6,0,1)
+    put!(input_hmms, (chainid, 2, hmm, 0.0, obs))
+    BioBackgroundModels.EM_converge!(input_hmms, output_hmms, 1; max_iterates=4, verbose=true)
+    wait(output_hmms)
+    workerid, jobid, iterate, hmm3, log_p, delta, converged = take!(output_hmms)
+    @test jobid == chainid
+    @test iterate == 3
+    @test BioBackgroundModels.assert_hmm(hmm3.π0, hmm3.π, hmm3.D)
+    @test size(hmm3) == size(hmm) == (6,4)
+    @test log_p < 1
+    @test log_p == linear_likelihood(obs, hmm)
+    @test converged == false
+    wait(output_hmms)
+    workerid, jobid, iterate, hmm4, log_p, delta, converged = take!(output_hmms)
+    @test jobid == chainid
+    @test iterate == 4
+    @test BioBackgroundModels.assert_hmm(hmm4.π0, hmm4.π, hmm4.D)
+    @test size(hmm4) == size(hmm) == (6,4)
+    @test log_p < 1
+    @test log_p == linear_likelihood(obs, hmm3)
+    @test converged == false
+
+    # "Test convergence.."
+    obs=zeros(Int64, 4, 1001)    
+    for o in 1:size(obs)[1]
+        obsl=rand(100:1000)
+        obs[o,1:obsl]=rand(1:4,obsl)
+    end
+    input_hmms= RemoteChannel(()->Channel{Tuple}(1))
+    output_hmms = RemoteChannel(()->Channel{Tuple}(30))
+    put!(input_hmms, (chainid, 2, hmm, 0.0, obs))
+    BioBackgroundModels.EM_converge!(input_hmms, output_hmms, 1; delta_thresh=.05, max_iterates=100, verbose=true)
+    wait(output_hmms)
+    workerid, jobid, iterate, hmm4, log_p, delta, converged = take!(output_hmms)
+    while isready(output_hmms)
+        workerid, jobid, iterate, hmm4, log_p, delta, converged = take!(output_hmms)
+    end
+    @test converged==1
+end
+
+@testset "API/EM_master.jl API tests" begin
     #CONSTANTS FOR HMM LEARNING
     replicates = 4 #repeat optimisation from this many seperately initialised samples from the prior
     Ks = [1,2,4,6] #mosaic class #s to test
@@ -771,25 +818,61 @@ end
         @test assert_hmm(hmm.π0, hmm.π, hmm.D)
         @test prob < 0
     end
-end
 
-@testset "BBM API tests..." begin
     genome_reader = open(FASTA.Reader, genome, index=index)
     seq=LongSequence{DNAAlphabet{2}}(FASTA.sequence(genome_reader["CM002885.2.1"]))
     seqdict = Dict("test"=>[seq for i in 1:3])
-
+    seqdict["blacklist"]=seqdict["test"]
 
     job_ids=Vector{Chain_ID}()
     Ks=[1,2]; order_nos=[0,1]
     for K in Ks, order in order_nos
         push!(job_ids, Chain_ID("test", K, order, 1))
     end
+    push!(job_ids, Chain_ID("blacklist", 1, 0, 1))
 
     wkpool=addprocs(2, topology=:master_worker)
     @everywhere using BioBackgroundModels
 
-    em_jobset=setup_EM_jobs!(job_ids, seqdict)
+    load_dict=Dict{Int64,LoadConfig}()
+    for (n,wk) in enumerate(wkpool)
+        n==1 && (load_dict[wk]=LoadConfig(1:2,0:1,["blacklist"]))
+        n==2 && (load_dict[wk]=LoadConfig(1:2,0:1,[""]))
+    end
+    #test work resumption, load configs
+
+    em_jobset=setup_EM_jobs!(job_ids, seqdict, delta_thresh=10000.)
+    execute_EM_jobs!(wkpool, em_jobset..., "testchains", delta_thresh=10000., verbose=true, load_dict=load_dict)
+
+    for (chain_id,chain) in em_jobset[2]
+        @test chain[end].converged == true
+        @test chain[end].delta <= 10000
+        @test typeof(chain[end].hmm)==HMM{Univariate,Float64}
+        @test 1 <= chain[end].iterate <= 5000
+    end
+
+    wkpool=addprocs(2, topology=:master_worker)
+    @everywhere using BioBackgroundModels
+
+    em_jobset=setup_EM_jobs!(job_ids, seqdict, chains=deserialize("testchains"), delta_thresh=.1)
     execute_EM_jobs!(wkpool, em_jobset..., "testchains", delta_thresh=.1, verbose=true)
+
+    for (chain_id,chain) in em_jobset[2]
+        @test chain[end].converged == true
+        @test chain[end].delta <= .1
+        @test typeof(chain[end].hmm)==HMM{Univariate,Float64}
+        @test 1 <= chain[end].iterate <= 5000
+    end
+
+    #test for already converged warning
+    wkpool=addprocs(2, topology=:master_worker)
+    @everywhere using BioBackgroundModels
+    @test_throws ArgumentError execute_EM_jobs!(wkpool, em_jobset..., "testchains", delta_thresh=.01, verbose=true)
 
     rm("testchains")
 end
+
+rm(genome)
+rm(index)
+rm(gff)
+rm(posfasta)

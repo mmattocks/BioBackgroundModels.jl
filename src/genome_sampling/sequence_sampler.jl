@@ -41,7 +41,7 @@ end
 
                 # function to convert scaffold ID from that observed by the masked .fna to the more legible one observed by the GRCz11 GFF3
                 function rectify_identifier(scaffold_id::String)
-                    if scaffold_id[1:4] == "CM00" #marks chromosome scaffold
+                    if length(scaffold_id) >= 4 && scaffold_id[1:4] == "CM00" #marks chromosome scaffold
                         chr_code = scaffold_id[5:10]
                         chr_no = "$(Int((parse(Float64,chr_code)) - 2884.2))"
                         return chr_no
@@ -74,10 +74,7 @@ end
                                 window = determine_sample_window(feature_metaStart, feature_metaEnd, start_index, metacoordinate_bitarray, sample_window_min, sample_window_max) #get an appropriate sampling window around the selected index, given the feature boundaries and params
                             end
                         end
-                        if window[1] > length(metacoordinate_bitarray) || window[2] > length(metacoordinate_bitarray)
-                            @error "Error: metacoords $(window[1]), $(window[2]) in partition $partitionid > $(length(metacoordinate_bitarray)), $start_index, $feature_metaStart, $feature_metaEnd, $feature_length"
-                            @error "Avail indices $available_indices"
-                        end
+
                         sample_scaffoldid, sample_scaffold_start, sample_scaffold_end = meta_to_feature_coord(window[1],window[2],partition_df)
 
                         proposal_sequence = fetch_sequence(sample_scaffoldid, scaffold_seq_dict, sample_scaffold_start, sample_scaffold_end, strand; deterministic=deterministic) #get the sequence associated with the sample window
@@ -157,7 +154,7 @@ function fetch_sequence(scaffold_id::String, scaffold_seq_dict::Dict{String, Lon
     elseif strand == '-'
         proposal_sequence = reverse_complement(scaffold_seq_dict[scaffold_id][proposal_start:proposal_end])
     else
-        @error "Invalid sample code! Must be '+', '-', or '0' (random strand)"
+        throw(ArgumentError("Invalid sample code! Must be '+', '-', or '0' (random strand)"))
     end
 
     return proposal_sequence
@@ -252,7 +249,7 @@ function get_feature_row_index(feature_df::DataFrame, metacoordinate::Integer)
         elseif metacoordinate >= feature_df.MetaStart[index] && metacoordinate <= feature_df.MetaEnd[index] #else confirm that the metacoordinate is in the found feature
             return index #return the found feature index
         else
-            @error "Unexpected metacoordinate $metacoordinate in partition of $total_feature_bases bases, with feature start $(feature_df.MetaStart[index]), end $(feature_df.MetaEnd[index])"
+            throw(DomainError("Unexpected metacoordinate $metacoordinate in partition of $total_feature_bases bases, with feature start $(feature_df.MetaStart[index]), end $(feature_df.MetaEnd[index])"))
         end
     end
 end

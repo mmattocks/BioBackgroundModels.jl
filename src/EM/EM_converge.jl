@@ -1,7 +1,7 @@
 function EM_converge!(hmm_jobs::RemoteChannel, output_hmms::RemoteChannel, no_models::Integer; load_config::LoadConfig=LoadConfig(1:typemax(Int64)-1, 0:typemax(Int64)-1, [""]),  EM_func::Function=linear_step, delta_thresh=1e-3, max_iterates=5000, verbose=false)
     while isready(hmm_jobs)
         workerid = myid()
-        jobid::Chain_ID, start_iterate::Integer, hmm::HMM, job_norm::AbstractFloat, observations::Matrix = load_balancer(no_models, hmm_jobs, load_config)
+        jobid, start_iterate, hmm, job_norm, observations = load_balancer(no_models, hmm_jobs, load_config)
         jobid == 0 && break #no valid job for this worker according to load_table entry
 
         start_iterate > max_iterates - 1 && throw(ArgumentError("HMM chain $jobid is already longer ($start_iterate iterates) than specified max_iterates!"))
@@ -14,7 +14,7 @@ function EM_converge!(hmm_jobs::RemoteChannel, output_hmms::RemoteChannel, no_mo
         EM_func==bw_step && (observations=transpose(observations))
 
         start_iterate == 1 && put!(output_hmms, (workerid, jobid, curr_iterate, hmm, 0.0, 0.0, false, 0.0)); #on the first iterate return the initial HMM for the chain right away
-        verbose && @info "Fitting HMM, start iterate $start_iterate, $jobid with $(size(hmm)[1]) states and $(size(hmm)[2]) symbols..."
+        verbose && @info "Fitting HMM on Wk $workerid, start iterate $start_iterate, $jobid with $(size(hmm)[1]) states and $(size(hmm)[2]) symbols..."
 
         curr_iterate += 1
         if curr_iterate == 2 #no delta value is available

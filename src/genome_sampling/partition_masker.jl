@@ -38,16 +38,16 @@ function make_padded_df(position_fasta::String, gff3_path::String, genome_path::
     return position_df
 end
 
-function add_partition_masks!(position_df::DataFrame, gff3_path::String, perigenic_pad::Integer=500, columns::Tuple{Symbol,Symbol,Symbol}=(:SeqID, :PadSeq, :PadStart))
+function add_partition_masks!(position_df::DataFrame, gff3_path::String, perigenic_pad::Integer=500)
     partitions=["exon", "periexonic", "intergenic"]
     partition_coords_dict = partition_genome_coordinates(gff3_path, perigenic_pad)
     partitioned_scaffolds = divide_partitions_by_scaffold(partition_coords_dict)
     maskcol = Vector{Matrix{Integer}}()
 
     @showprogress 1 "Masking..." for entry in eachrow(position_df)
-        scaffold = entry[columns[1]]
-        maskLength = length(entry[columns[2]])
-        seqStart = entry[columns[3]]
+        scaffold = entry.SeqID
+        maskLength = length(entry.PadSeq)
+        seqStart = entry.PadStart
 
         scaffold_coords_dict = Dict{String,DataFrame}()
         
@@ -96,11 +96,7 @@ end
                         position += partition_extent + 1
                     end
                 
-                    if any(iszero, seqMask[:,1])
-                        @error "Malformed seqmask!!"
-                    else
-                        return seqMask
-                    end
+                    return seqMask
                 end
 
                 function find_position_partition(position::Integer, partition_dict::Dict{String, DataFrame})
@@ -123,7 +119,7 @@ end
                     end
                 
                     if foundPos == false
-                        @error "Position $position not found among partition coordinates!"
+                        throw(DomainError("Position $position not found among partition coordinates!"))
                     else
                         return position_partition_id, three_prime_extent, sample_strand
                     end

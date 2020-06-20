@@ -1,6 +1,6 @@
 #function to setup an HMM chains dictionary and RemoteChannel for learning jobs, given a vector of state #s, order_nos, replicates to train, the dictionary to fill, the RemoteChannel and the training sequences
 #resumes any existing non-converged chains, otherwise initialises hmms for new chains given provided constants
-function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{LongSequence{DNAAlphabet{2}}}};  chains::Dict{Chain_ID,Vector{EM_step}}=Dict{Chain_ID,Vector{EM_step}}(), init_function::Function=autotransition_init)
+function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{LongSequence{DNAAlphabet{2}}}}; delta_thresh::Float64=1e-3,  chains::Dict{Chain_ID,Vector{EM_step}}=Dict{Chain_ID,Vector{EM_step}}(), init_function::Function=autotransition_init)
     #argument checking
     length(job_ids) < 1 && throw(ArgumentError("Empty job id vector!"))
     length(obs_sets) < 1 && throw(ArgumentError("Empty observation sets!"))
@@ -14,7 +14,7 @@ function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{
     @showprogress 1 "Setting up HMMs..." for id in job_ids #for each jobid, add an initial HMM to input_channel for EM_workers
         if haskey(chains, id) && length(chains[id]) > 0 #true if resuming from incomplete chain
             chain_end=chains[id][end]
-            if !chain_end.converged #push the last hmm iterate for nonconverged chains to the input channel with coded observations and values for chain resumption
+            if !chain_end.converged || (chain_end.converged && chain_end.delta > delta_thresh)#push the last hmm iterate for nonconverged chains to the input channel with coded observations and values for chain resumption
                 put!(input_channel, (id, chain_end.iterate, chain_end.hmm, chain_end.log_p, code_dict[(id.obs_id, id.order)]))
             else #skip any jobs that have converged from previous runs
                 no_input_hmms -= 1
