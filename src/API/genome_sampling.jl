@@ -33,8 +33,10 @@ function execute_sample_jobs(channels::Tuple{RemoteChannel,RemoteChannel,RemoteC
     if isready(input_sample_channel) > 0
         @info "Sampling.."
         #WORKERS SAMPLE
-        for worker in worker_pool[1:partitions]
-            remote_do(get_sample_set, worker, input_sample_channel, completed_sample_channel, progress_channel)
+        for (n, worker) in enumerate(worker_pool)
+            if n <= partitions #no more workers than partitions to be used
+                remote_do(get_sample_set, worker, input_sample_channel, completed_sample_channel, progress_channel)
+            end
         end
     else
         @error "No sampling jobs!"

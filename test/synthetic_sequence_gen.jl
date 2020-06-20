@@ -23,9 +23,9 @@ gff_txt = "##gff-version 3
 ###
 1	ensembl_havana	gene	501	1000	.	-	.	ID=gene:ENSDARG00000000001;Name=fake01;biotype=protein_coding;description=fake gene [Source:FAKESRC];gene_id=ENSDARG00000000001;logic_name=ensembl_havana_gene;version=1
 1	ensembl_havana	mRNA	501	1000	.	-	.	ID=transcript:ENSDART00000000001;Parent=gene:ENSDARG00000000001;Name=fake01-203;biotype=protein_coding;transcript_id=ENSDART00000000001;version=1
-1	ensembl_havana	three_prime_UTR	501	510	.	+	.	Parent=transcript:ENSDART00000000001
-1	ensembl_havana	exon	501	570	.	-	.	Parent=transcript:ENSDART00000000001;Name=ENSDARE00000000001;constitutive=0;ensembl_end_phase=0;ensembl_phase=0;exon_id=ENSDARE00000000001;rank=5;version=1
-1	ensembl_havana	CDS	511	570	.	-	0	ID=CDS:ENSDARP00000000001;Parent=transcript:ENSDART00000000001;protein_id=ENSDARP00000000001
+1	ensembl_havana	three_prime_UTR	501	510	.	-	.	Parent=transcript:ENSDART00000000001
+1	ensembl_havana	exon	501	570	.	+	.	Parent=transcript:ENSDART00000000001;Name=ENSDARE00000000001;constitutive=0;ensembl_end_phase=0;ensembl_phase=0;exon_id=ENSDARE00000000001;rank=5;version=1
+1	ensembl_havana	CDS	511	570	.	+	0	ID=CDS:ENSDARP00000000001;Parent=transcript:ENSDART00000000001;protein_id=ENSDARP00000000001
 1	ensembl_havana	exon	601	660	.	-	.	Parent=transcript:ENSDART00000000001;Name=ENSDARE00000000002;constitutive=0;ensembl_end_phase=0;ensembl_phase=0;exon_id=ENSDARE00000000002;rank=4;version=1
 1	ensembl_havana	CDS	601	660	.	-	1	ID=CDS:ENSDARP00000000001;Parent=transcript:ENSDART00000000001;protein_id=ENSDARP00000000001
 1	ensembl_havana	exon	701	760	.	-	.	Parent=transcript:ENSDART00000000001;Name=ENSDARE00000000003;constitutive=0;ensembl_end_phase=0;ensembl_phase=0;exon_id=ENSDARE00000000003;rank=3;version=1

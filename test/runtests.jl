@@ -16,8 +16,6 @@ Sys.islinux() ? posfasta =  (@__DIR__) * "/syntheticpos.fa" : posfasta = (@__DIR
 !isfile(gff) && print_synthetic_gff(gff)
 !isfile(posfasta) && print_synthetic_position(posfasta)
 
-sample_record_dfs = Dict{String,DataFrame}()
-
 Random.seed!(1)
 
 @testset "HMM/HMM.jl constructors" begin
@@ -243,7 +241,7 @@ end
     @test_throws DomainError mask_sequence_by_partition(1001,151,scaffold_coords_dict)
 end
 
-@testset "genome_sampling/sequence_sampler.jl functions" begin
+@testset "genome_sampling/sequence_sampler.jl functions & API/genome_sampling.jl interface" begin
     #rectifier tests
     @test rectify_identifier("1")=="1"
 
@@ -259,7 +257,7 @@ end
     syn_periexonic_strands = ['-','-','-','-','-','-']
     syn_exonic_starts = [511,601,701,801,901]
     syn_exonic_ends = [570,660,760,860,960]
-    syn_exonic_strands = ['-','-','-','-','-']
+    syn_exonic_strands = ['+','-','-','-','-']
     partition_lengths = Dict("exon"=>5*60,"intergenic"=>250,"periexonic"=>450)
 
     # "Testing sequence sampler fns..."
@@ -281,7 +279,7 @@ end
 
     # "Checking sampling functions at all synthetic indices..."
 
-    input_test_channel, completed_test_channel = setup_sample_jobs(genome, index, gff, sample_set_length, min_sample_window, max_sample_window, perigenic_pad; deterministic=true)
+    input_test_channel, completed_test_channel, progress_channel, setlength = setup_sample_jobs(genome, index, gff, sample_set_length, min_sample_window, max_sample_window, perigenic_pad; deterministic=true)
     while isready(input_test_channel)
         genome_path, genome_index_path, partition_df, partitionid, sample_set_length, sample_window_min, sample_window_max, deterministic = take!(input_test_channel)
 
@@ -306,10 +304,11 @@ end
             @test 1 <= feature_metaStart < feature_metaEnd <= length(metacoordinate_bitarray)
             @test feature_metaStart in partition_df.MetaStart
             @test feature_metaEnd in partition_df.MetaEnd
-            if partitionid == "exon" || partitionid == "periexonic"
+            if partitionid == "periexonic"
                 @test strand == '-'
+            elseif partitionid == "exon"
+                @test strand in ['-','+'] 
             end
-
             feature_length = length(feature_metaStart:feature_metaEnd)
             window = determine_sample_window(feature_metaStart, feature_metaEnd, bitindex, metacoordinate_bitarray, sample_window_min, sample_window_max) #get an appropriate sampling window around the selected index, given the feature boundaries and params
             @test 1 <= feature_metaStart <= window[1] < window[1]+sample_window_min-1 < window[1]+sample_window_max-1<= window[2] <= feature_metaEnd <= length(metacoordinate_bitarray)
@@ -328,12 +327,12 @@ end
 
     # "Verifying sampling channels..."
 
-    input_sample_channel, completed_sample_channel = setup_sample_jobs(genome, index, gff, sample_set_length, min_sample_window, max_sample_window, perigenic_pad; deterministic=true)
-    progress_channel = RemoteChannel(()->Channel{Tuple}(20))
+    input_sample_channel, completed_sample_channel, progress_channel, setlength = setup_sample_jobs(genome, index, gff, sample_set_length, min_sample_window, max_sample_window, perigenic_pad; deterministic=true)
     get_sample_set(input_sample_channel, completed_sample_channel, progress_channel)
 
     #collect sample dfs by partition id when ready
     collected_counter = 0
+    sample_record_dfs = Dict{String,DataFrame}()
     while collected_counter < partitions
         wait(completed_sample_channel)
         partition_id, sample_df = take!(completed_sample_channel)
@@ -368,6 +367,15 @@ end
             @test sample.SampleSequence == target_seq
         end
     end
+
+    #execute_sample_jobs API
+    wkpool=addprocs(1)
+    @everywhere using BioBackgroundModels
+
+    channels = setup_sample_jobs(genome, index, gff, sample_set_length, min_sample_window, max_sample_window, perigenic_pad; deterministic=true)
+    records=execute_sample_jobs(channels, wkpool)
+
+    rmprocs(wkpool)
 end
 
 @testset "likelihood_funcs/hmm.jl & bg_lh_matrix.jl functions" begin
@@ -427,11 +435,15 @@ end
     @test offset_position_df.SeqOffset[1]==100
 
     add_partition_masks!(position_df, gff, perigenic_pad)
-    @test all(position_df.MaskMatrix[1][:,2].==-1)
     @test all(position_df.MaskMatrix[1][1:151,1].==2)
     @test all(position_df.MaskMatrix[1][152:211,1].==3)
     @test all(position_df.MaskMatrix[1][212:241,1].==2)
     @test all(position_df.MaskMatrix[1][242:end,1].==3)
+    @test all(position_df.MaskMatrix[1][1:151,2].==-1)
+    @test all(position_df.MaskMatrix[1][152:211,2].==1)
+    @test all(position_df.MaskMatrix[1][212:end,2].==-1)
+
+
 
     lh_matrix=BGHMM_likelihood_calc(position_df,BGHMM_dict)
     @test size(lh_matrix)==(position_length*2,1)
@@ -442,11 +454,11 @@ end
     plh=get_BGHMM_symbol_lh(pcode, BGHMM_dict["periexonic"][1])
     @test isapprox(lh_matrix[1:151,1], reverse(plh))
 
-    exonic_frag=reverse_complement!(LongSequence{DNAAlphabet{2}}(seq[511:570]))
+    exonic_frag=LongSequence{DNAAlphabet{2}}(seq[511:570])
     eno=get_order_n_seqs([exonic_frag],0)
     ecode=code_seqs(eno)
     elh=get_BGHMM_symbol_lh(ecode, BGHMM_dict["exon"][1])
-    @test isapprox(lh_matrix[152:211,1],reverse(elh))
+    @test isapprox(lh_matrix[152:211,1],elh)
 end
 
 @testset "EM/baum-welch.jl MS_HMMBase equivalency and functions" begin
@@ -797,7 +809,19 @@ end
     replicates = 4 #repeat optimisation from this many seperately initialised samples from the prior
     Ks = [1,2,4,6] #mosaic class #s to test
     order_nos = [0,1,2] #DNA kmer order #s to test
+    sample_set_length=100
+    min_sample_window=5
+    max_sample_window=25
+    perigenic_pad=250
+
+    wkpool=addprocs(2)
+    @everywhere using BioBackgroundModels
+
+    channels = setup_sample_jobs(genome, index, gff, sample_set_length, min_sample_window, max_sample_window, perigenic_pad; deterministic=true)
+    sample_record_dfs=execute_sample_jobs(channels, wkpool)
     training_sets, test_sets = split_obs_sets(sample_record_dfs)
+
+    rmprocs(wkpool)
 
 
     job_ids=Vector{Chain_ID}()
@@ -825,11 +849,11 @@ end
     seqdict["blacklist"]=seqdict["test"]
 
     job_ids=Vector{Chain_ID}()
+    push!(job_ids, Chain_ID("blacklist", 1, 0, 1))
     Ks=[1,2]; order_nos=[0,1]
     for K in Ks, order in order_nos
         push!(job_ids, Chain_ID("test", K, order, 1))
     end
-    push!(job_ids, Chain_ID("blacklist", 1, 0, 1))
 
     wkpool=addprocs(2, topology=:master_worker)
     @everywhere using BioBackgroundModels
