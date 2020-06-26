@@ -57,3 +57,19 @@ istransmat(A::AbstractMatrix) = issquare(A) && all([isprobvec(A[i,:]) for i in 1
 size(hmm::AbstractHMM, dim = :) = (length(hmm.D), length(hmm.D[1].p))[dim]
 
 copy(hmm::HMM) = HMM(copy(hmm.π0), copy(hmm.π), copy(hmm.D))
+
+function Base.show(io::IO, hmm::HMM)
+    println(io, "Background HMM")
+    println(io, "State Initial and Transition Probabilities")
+    print(io, "π0: ")
+    show(io, hmm.π0)
+    println(io)
+    print(io, "π: ")
+    display(hmm.π)
+    println(io)
+    println(io, "INFORMATIVE SYMBOLS BY STATE")
+    for (n,d) in enumerate(hmm.D)
+        print(io, "K$n ")
+        print_emitters(d)
+    end
+end

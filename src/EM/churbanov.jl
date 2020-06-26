@@ -6,7 +6,7 @@ function linear_step(hmm, observations, obs_lengths)
     #INITIALIZATION
     βoi_T = zeros(O,N); βoi_t = zeros(O,N) #log betas at T initialised as zeros
     Eoγim_T = fill(-Inf,O,Γ,N,N); Eoγim_t = fill(-Inf,O,Γ,N,N)
-    @inbounds for m in 1:N, i in 1:N, γ in 1:Γ, o in 1:O
+    for m in 1:N, i in 1:N, γ in 1:Γ, o in 1:O
         observations[o, obs_lengths[o]] == γ && m == i && (Eoγim_T[o, γ, i, m] = 0)
     end
     Tijm_T = fill(-Inf,O,N,N,N); Tijm_t = fill(-Inf,O,N,N,N) #Ti,j(T,m) = 0 for all m; in logspace
@@ -39,7 +39,7 @@ function linear_step(hmm, observations, obs_lengths)
 end
                 #LINEAR_STEP SUBFUNCS
                 function backwards_sweep!(hmm, a, N, Γ, βoi_T, βoi_t, Tijm_T, Tijm_t, Eoγim_T, Eoγim_t, observations, mask, obs_lengths)
-                    @inbounds for t in maximum(obs_lengths)-1:-1:1
+                    for t in maximum(obs_lengths)-1:-1:1
                         last_β=copy(βoi_T)
                         lls = churbanov_llhs(hmm,observations[:,t+1])
                         omask = findall(mask[:,t+1])
