@@ -25,7 +25,7 @@ function Base.show(io::IO, report::Chain_Report)
     show(report.final_hmm)
     println("State Mean Feature Length (bp)")
     for i in 1:length(report.state_run_lengths)
-        println("K$i: $(report.state_run_lengths[i].*report.id.order+1)")
+        println("K$i: $(report.state_run_lengths[i].*float(report.id.order+1))")
     end
     println(" ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶")
     lh_vec=Vector([report.convergence_values["logP(O|θ)"].data...])
@@ -33,11 +33,21 @@ function Base.show(io::IO, report::Chain_Report)
     lh_plot=lineplot(lh_vec;title="Chain likelihood evolution", xlabel="Training iterate", xlim=(0,length(lh_vec)), ylim= (floor(minimum(lh_vec),sigdigits=2),0), name="logP(O|θ)")
     lineplot!(lh_plot,[report.naive_lh for i in 1:length(lh_vec)], color=:magenta,name="naive")
     show(lh_plot)
+    println("\n")
+
+    k1vec=Vector([report.convergence_values["K1"].data...])
+    k_plot=lineplot(k1vec, title="State p(Auto) evolution", xlabel="Training iterate", ylabel="prob", name="K1",ylim=(0,1),xlim=(0,length(k1vec)))
+    for k in 2:report.id.K
+        kvec=Vector([report.convergence_values["K$k"].data...])
+        lineplot!(k_plot,kvec,name="K$k")
+    end
+    show(k_plot)
+    println()
 
     printstyled("\nConvergence Diagnostics\n",bold=true)
     if report.convergence_diagnostic.name != "short"
         all(Bool.(report.convergence_diagnostic.nt.stationarity)) && all(Bool.(report.convergence_diagnostic.nt.test)) ? printstyled("Likelihood and autotransition probabilites converged and passing tests.\n", color=:green) : printstyled("Not all parameters converged or passing tests!\n",color=:red)
-        show(report.convergence_diagnostic)
+        display(report.convergence_diagnostic)
     else
         printstyled("Convergence diagnostics unavailable for chains <10 steps!\n", color=:yellow)
     end
@@ -64,13 +74,12 @@ function report_chains(chains::Dict{Chain_ID,Vector{EM_step}}, test_sets::Dict{S
 
     reports=Dict{Chain_ID,Chain_Report}()
     @showprogress 1 "Testing chains..." for (id, chain) in chains
-        chains_array=zeros(length(chain),2+id.K)
+        chains_array=zeros(length(chain),1+id.K)
         for (n,step) in enumerate(chain)
             chains_array[n,1]=step.log_p
-            chains_array[n,2]=step.delta
-            chains_array[n,3:end]=get_diagonal_array(step.hmm)
+            chains_array[n,2:end]=get_diagonal_array(step.hmm)
         end
-        convergence_values=Chains(chains_array,["logP(O|θ)", "δlogP", ["K"*string(i) for i in 1:id.K]...])
+        convergence_values=Chains(chains_array,["logP(O|θ)", ["K"*string(i) for i in 1:id.K]...])
         length(chain)>=10 ? (convergence_diagnostic=heideldiag(convergence_values)[1]) : (convergence_diagnostic=ChainDataFrame("short",(;:a=>[1.])))
         id.K > 1 ? (mean_run_lengths=sim_run_lengths(get_diagonal_array(chain[end].hmm),1000)) : (mean_run_lengths=[Inf])
         test_lh=obs_lh_given_hmm(code_dict[(id.obs_id,id.order)], chain[end].hmm)
@@ -87,14 +96,6 @@ function get_diagonal_array(hmm::HMM)
         diagonal[i] = hmm.π[i,i]
     end
     return diagonal
-end
-
-function chain_diagonal_stability_matrix(chain::Vector{Any})
-    diagonals=zeros(length(chain),length(chain[1][2].π0))
-    for (s,step) in enumerate(chain)
-        diagonals[s,:]=get_diagonal_array(step[2])        
-    end
-    return diagonals
 end
 
 #function to simulate run lengths for vector of diagonal values

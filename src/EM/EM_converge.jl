@@ -10,7 +10,7 @@ function EM_converge!(hmm_jobs::RemoteChannel, output_hmms::RemoteChannel, no_mo
         #mask calculations here rather than ms_mle_step to prevent recalculation every iterate
         #build array of observation lengths
 
-        obs_lengths = [findfirst(iszero,observations[o,:])-1 for o in 1:size(observations)[1]] #mask calculations here rather than mle_step to prevent recalculation every iterate
+        obs_lengths = [findfirst(iszero,observations[o,:])-1 for o in 1:size(observations,1)] #mask calculations here rather than mle_step to prevent recalculation every iterate
         EM_func==bw_step && (observations=transpose(observations))
 
         start_iterate == 1 && put!(output_hmms, (workerid, jobid, curr_iterate, hmm, job_norm, 0.0, false, 0.0)); #on the first iterate return the initial HMM immediately

@@ -33,6 +33,7 @@ include("likelihood_funcs/bg_lh_matrix.jl")
 include("likelihood_funcs/hmm.jl")
 export obs_lh_given_hmm
 include("reports/chain_report.jl")
+export generate_reports
 include("utilities/observation_coding.jl")
 include("utilities/BBG_analysis.jl")
 include("utilities/BBG_progressmeter.jl")
@@ -42,10 +43,9 @@ include("utilities/utilities.jl")
 export split_obs_sets
 include("utilities/log_prob_sum.jl")
 export lps
-include("reports/chain_report.jl")
-export generate_reports
 include("reports/partition_report.jl")
 include("reports/replicate_convergence.jl")
+include("dev/dev.jl")
 
 
 end # module

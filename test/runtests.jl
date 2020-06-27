@@ -110,16 +110,17 @@ end
 end
 
 @testset "utilities/load_balancer.jl EM_converge load balancing structs and functions" begin
-    @test_throws ArgumentError LoadConfig(0:5,1:5,"")
-    @test_throws ArgumentError LoadConfig(1:5,-1:5,"")
+    @test_throws ArgumentError LoadConfig(0:5,1:5)
+    @test_throws ArgumentError LoadConfig(1:5,-1:5)
 
     job_ids=[Chain_ID("test",6,2,1),Chain_ID("test",4,2,1),Chain_ID("test",2,0,1)]
     obs_sets=Dict("test"=>[LongSequence{DNAAlphabet{2}}("AAAAAAAAAAAAAA")])
 
-    K_exclusive_config=LoadConfig(1:1,0:0,[""])
-    O_exclusive_config=LoadConfig(1:6,3:4,[""])
-    blacklist_config=LoadConfig(1:6,0:2,["test"])
-    high_config=LoadConfig(4:6,0:2,[""])
+    K_exclusive_config=LoadConfig(1:1,0:0)
+    O_exclusive_config=LoadConfig(1:6,3:4)
+    blacklist_config=LoadConfig(1:6,0:2,blacklist=job_ids)
+    whitelist_config=LoadConfig(1:6,0:2,whitelist=[Chain_ID("test",6,2,2)])
+    high_config=LoadConfig(4:6,0:2,whitelist=job_ids)
 
     no_input_hmms, chains, input_channel, output_channel = setup_EM_jobs!(job_ids,obs_sets)
     @test load_balancer(no_input_hmms, input_channel, K_exclusive_config) == (0,0,0,0,0)
@@ -131,12 +132,15 @@ end
     @test load_balancer(no_input_hmms, input_channel, blacklist_config) == (0,0,0,0,0)
 
     no_input_hmms, chains, input_channel, output_channel = setup_EM_jobs!(job_ids,obs_sets)
+    @test load_balancer(no_input_hmms, input_channel, whitelist_config) == (0,0,0,0,0)
+
+    no_input_hmms, chains, input_channel, output_channel = setup_EM_jobs!(job_ids,obs_sets)
     high_set=load_balancer(no_input_hmms, input_channel, high_config) 
     
     @test high_set[1]==Chain_ID("test",6,2,1)
     @test high_set[2]==1
     @test typeof(high_set[3])==HMM{Univariate,Float64}
-    @test high_set[4]==0.0
+    @test high_set[4]==obs_lh_given_hmm(high_set[5],high_set[3],linear=false)
     @test typeof(high_set[5])==Matrix{UInt8}
 end
 
@@ -442,8 +446,6 @@ end
     @test all(position_df.MaskMatrix[1][1:151,2].==-1)
     @test all(position_df.MaskMatrix[1][152:211,2].==1)
     @test all(position_df.MaskMatrix[1][212:end,2].==-1)
-
-
 
     lh_matrix=BGHMM_likelihood_calc(position_df,BGHMM_dict)
     @test size(lh_matrix)==(position_length*2,1)
@@ -834,7 +836,7 @@ end
 
     while isready(input_hmms)
         jobid, start_iterate, hmm, last_norm, observations = take!(input_hmms)
-        @test last_norm == 0
+        @test last_norm == linear_likelihood(observations, hmm)
         obs_lengths = [findfirst(iszero,observations[o,:])-1 for o in 1:size(observations)[1]]
         #make sure input HMMs are valid and try to mle_step them and ensure their 1-step children are valid
         @test assert_hmm(hmm.π0, hmm.π, hmm.D)
@@ -860,8 +862,8 @@ end
 
     load_dict=Dict{Int64,LoadConfig}()
     for (n,wk) in enumerate(wkpool)
-        n==1 && (load_dict[wk]=LoadConfig(1:2,0:1,["blacklist"]))
-        n==2 && (load_dict[wk]=LoadConfig(1:2,0:1,[""]))
+        n==1 && (load_dict[wk]=LoadConfig(1:2,0:1,blacklist=[Chain_ID("blacklist",1,0,1)]))
+        n==2 && (load_dict[wk]=LoadConfig(1:2,0:1))
     end
     #test work resumption, load configs
 
