@@ -32,7 +32,7 @@ function linear_likelihood(observations,hmm)
     βoi_T = backwards_lh_sweep!(hmm, a, N, βoi_T, βoi_t, observations, mask, obs_lengths)
 
     #TERMINATION
-    lls = churbanov_llhs(hmm,observations[:,1])
+    lls = c_llhs(hmm,observations[:,1])
     α1om = lls .+ π0 #first position forward msgs
 
     return lps([logsumexp(lps.(α1om[o,:], βoi_T[o,:])) for o in 1:O])
@@ -41,7 +41,7 @@ end
                 function backwards_lh_sweep!(hmm, a, N, βoi_T, βoi_t, observations, mask, obs_lengths)
                     for t in maximum(obs_lengths)-1:-1:1
                         last_β=copy(βoi_T)
-                        lls = churbanov_llhs(hmm,observations[:,t+1])
+                        lls = c_llhs(hmm,observations[:,t+1])
                         omask = findall(mask[:,t+1])
                         βoi_T[omask,:] .+= view(lls,omask,:)
                         Threads.@threads for m in 1:N

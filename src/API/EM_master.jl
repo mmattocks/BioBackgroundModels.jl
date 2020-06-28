@@ -9,7 +9,7 @@ function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{
     input_channel= RemoteChannel(()->Channel{Tuple}(no_input_hmms*3)) #channel to hold HMM learning jobs
     output_channel= RemoteChannel(()->Channel{Tuple}(Inf)) #channel to take EM iterates off of
 
-    code_dict = code_job_obs(job_ids, obs_sets; sorted=true)
+    code_dict = code_job_obs(job_ids, obs_sets)
 
     @showprogress 1 "Setting up HMMs..." for id in job_ids #for each jobid, add an initial HMM to input_channel for EM_workers
         if haskey(chains, id) && length(chains[id]) > 0 #true if resuming from incomplete chain
