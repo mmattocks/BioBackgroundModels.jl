@@ -85,7 +85,7 @@ end
                 function bw_llhs(hmm, observations)
                     lls = zeros(length(hmm.D), size(observations)...)
                     Threads.@threads for d in 1:length(hmm.D)
-                        (lls[d,:,:] = logpdf.(hmm.D[d], observations))
+                        lls[d,:,:] = logpdf.(hmm.D[d], observations)
                     end
                     return lls
                 end
