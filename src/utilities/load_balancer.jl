@@ -1,8 +1,11 @@
 struct LoadConfig
     k_range::UnitRange
     o_range::UnitRange
-    sample_blacklist::Vector{String}
-    LoadConfig(k_range, o_range, sample_blacklist)=assert_loadconfig(k_range, o_range) && new(k_range, o_range, sample_blacklist)
+    blacklist::Vector{Chain_ID}
+    whitelist::Vector
+    function LoadConfig(k_range, o_range; blacklist=Vector{Chain_ID}(), whitelist=Vector{Chain_ID}())
+        assert_loadconfig(k_range, o_range) && new(k_range, o_range, blacklist, whitelist)
+    end
 end
 
 function assert_loadconfig(k_range,o_range)
@@ -17,7 +20,7 @@ function load_balancer(no_models::Integer, hmm_jobs::RemoteChannel, config::Load
 
     jobid::Chain_ID, start_iterate::Integer, hmm::HMM, job_norm::AbstractFloat, observations::Matrix = take!(hmm_jobs)
 
-    while (jobid.K < config.k_range[1] || jobid.K > config.k_range[end] || jobid.order < config.o_range[1] || jobid.order > config.o_range[end] || jobid.obs_id in config.sample_blacklist) && lb_job_counter <= no_models #while a job prohibited by load table, keep putting the job back and drawing a new one
+    while (jobid.K < config.k_range[1] || jobid.K > config.k_range[end] || jobid.order < config.o_range[1] || jobid.order > config.o_range[end] || jobid in config.blacklist || (length(config.whitelist)>0 && !(jobid in config.whitelist))) && lb_job_counter <= no_models #while a job prohibited by load table, keep putting the job back and drawing a new one
         put!(hmm_jobs, (jobid, start_iterate, hmm, job_norm, observations))
         jobid, start_iterate, hmm, job_norm, observations = take!(hmm_jobs)
         lb_job_counter += 1

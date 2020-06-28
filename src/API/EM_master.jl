@@ -23,7 +23,9 @@ function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{
         else 
             hmm = init_function(id.K, id.order) #initialise first HMM in chain
             chains[id] = Vector{EM_step}() #initialise the relevant chain
-            put!(input_channel, (id, 1, hmm, 0.0, code_dict[(id.obs_id, id.order)])) 
+            obs=code_dict[(id.obs_id,id.order)]
+            lh=obs_lh_given_hmm(obs,hmm,linear=false)
+            put!(input_channel, (id, 1, hmm, lh, obs)) 
         end
     end
     return no_input_hmms, chains, input_channel, output_channel

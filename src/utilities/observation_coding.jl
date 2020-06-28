@@ -2,40 +2,36 @@
 #higher order DNA alphabet
 struct CompoundAlphabet
   symbols::Dict{Mer{DNAAlphabet{2}},Integer}
+  integers::Dict{Integer,Mer{DNAAlphabet{2}}}
+  #build a CompoundAlphabet for DNA of some order_no
+    function CompoundAlphabet(alphabet::Tuple, order_no::Integer)
+        symbols = Dict{Mer{DNAAlphabet{2}},Integer}()
+        integers = Dict{Integer,Mer{DNAAlphabet{2}}}()
+    
+        tuples = Array{Tuple}
+        if order_no > 0
+            tuples = collect(Iterators.product([alphabet for order in 0:order_no]...))
+        else #0th order compound product of an alphabet is that alphabet
+            tuples = collect(Iterators.product(alphabet))
+        end
+    
+        @inbounds for index in eachindex(tuples)
+            tuple_seq = Mer{DNAAlphabet{2}}(collect(tuples[index]))
+            integers[index] = tuple_seq
+            symbols[tuple_seq] = index
+        end
+    
+        new(symbols,integers)
+    end
 end
+
 
 struct N_Order_ntSequence
-  alphabet::CompoundAlphabet
-  seq_lengths::Vector{Integer}
-  order_kmers::Vector{Vector{Mer{DNAAlphabet{2}}}}
-end
-
-#build a CompoundAlphabet for DNA of some order_no
-function CompoundAlphabet(alphabet::Tuple, order_no::Integer)
-  symbols = Array{Mer{DNAAlphabet{2}}}(undef, length(alphabet)^(order_no+1))
-  tuples = Array{Tuple}
-  if order_no > 0
-      alphabet_list = [alphabet]
-      for ord_no in 1:order_no
-          push!(alphabet_list, alphabet)
-      end
-      tuples = collect(Iterators.product(alphabet_list...))
-  else #0th order compound product of an alphabet is that alphabet
-      tuples = collect(Iterators.product(alphabet))
+    alphabet::CompoundAlphabet
+    seq_lengths::Vector{Integer}
+    order_kmers::Vector{Vector{Mer{DNAAlphabet{2}}}}
   end
-
-  @inbounds for index in eachindex(tuples)
-      tuple_seq = Mer{DNAAlphabet{2}}(collect(tuples[index]))
-      symbols[index] = tuple_seq
-  end
-
-  code_dict=Dict{Mer{DNAAlphabet{2}},Integer}()
-  @inbounds for i in 1:length(symbols)
-      code_dict[symbols[i]]=i
-  end
-
-  return CompoundAlphabet(code_dict)
-end
+  
 
 function code_job_obs(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{LongSequence{DNAAlphabet{2}}}})
     code_jobs=Vector{Tuple{String,Integer}}()

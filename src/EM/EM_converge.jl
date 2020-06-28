@@ -1,4 +1,4 @@
-function EM_converge!(hmm_jobs::RemoteChannel, output_hmms::RemoteChannel, no_models::Integer; load_config::LoadConfig=LoadConfig(1:typemax(Int64)-1, 0:typemax(Int64)-1, [""]),  EM_func::Function=linear_step, delta_thresh=1e-3, max_iterates=5000, verbose=false)
+function EM_converge!(hmm_jobs::RemoteChannel, output_hmms::RemoteChannel, no_models::Integer; load_config::LoadConfig=LoadConfig(1:typemax(Int64)-1, 0:typemax(Int64)-1),  EM_func::Function=linear_step, delta_thresh=1e-3, max_iterates=5000, verbose=false)
     while isready(hmm_jobs)
         workerid = myid()
         jobid, start_iterate, hmm, job_norm, observations = load_balancer(no_models, hmm_jobs, load_config)
@@ -10,23 +10,18 @@ function EM_converge!(hmm_jobs::RemoteChannel, output_hmms::RemoteChannel, no_mo
         #mask calculations here rather than ms_mle_step to prevent recalculation every iterate
         #build array of observation lengths
 
-        obs_lengths = [findfirst(iszero,observations[o,:])-1 for o in 1:size(observations)[1]] #mask calculations here rather than mle_step to prevent recalculation every iterate
+        obs_lengths = [findfirst(iszero,observations[o,:])-1 for o in 1:size(observations,1)] #mask calculations here rather than mle_step to prevent recalculation every iterate
         EM_func==bw_step && (observations=transpose(observations))
 
-        start_iterate == 1 && put!(output_hmms, (workerid, jobid, curr_iterate, hmm, 0.0, 0.0, false, 0.0)); #on the first iterate return the initial HMM for the chain right away
+        start_iterate == 1 && put!(output_hmms, (workerid, jobid, curr_iterate, hmm, job_norm, 0.0, false, 0.0)); #on the first iterate return the initial HMM immediately
         verbose && @info "Fitting HMM on Wk $workerid, start iterate $start_iterate, $jobid with $(size(hmm)[1]) states and $(size(hmm)[2]) symbols..."
 
         curr_iterate += 1
-        if curr_iterate == 2 #no delta value is available
-            start=time()
-            new_hmm, last_norm = EM_func(hmm, observations, obs_lengths)
-            put!(output_hmms, (workerid, jobid, curr_iterate, new_hmm, last_norm, 0.0, false, time()-start))
-        else #get the delta value from the channel-supplied job value to resume a chain properly
-            start=time()
-            new_hmm, last_norm = EM_func(hmm, observations, obs_lengths)
-            delta = abs(lps(job_norm, -last_norm))
-            put!(output_hmms, (workerid, jobid, curr_iterate, new_hmm, last_norm, delta, false, time()-start))
-        end
+
+        start=time()
+        new_hmm, last_norm = EM_func(hmm, observations, obs_lengths)
+        delta = abs(lps(job_norm, -last_norm))
+        put!(output_hmms, (workerid, jobid, curr_iterate, new_hmm, last_norm, delta, false, time()-start))
 
         for i in curr_iterate:max_iterates
             start=time()
