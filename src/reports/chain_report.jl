@@ -102,19 +102,25 @@ end
 function sim_run_lengths(diagonal_value::AbstractArray, samples::Integer)
     mean_run_lengths = zeros(length(diagonal_value))
     for (i, value) in enumerate(diagonal_value)
-        runlengths = zeros(Integer, samples)
-        for s in 1:samples
-            run = true
-            runlength = 0
-            while run
-                runlength += 1
-                if rand(1)[1] > value
-                    run = false
+        if value == 0.
+            mean_run_lengths[i]=0.
+        elseif value ==1.
+            mean_run_lengths[i]=Inf
+        else
+            runlengths = zeros(Integer, samples)
+            for s in 1:samples
+                run = true
+                runlength = 0
+                while run
+                    runlength += 1
+                    if rand(1)[1] > value
+                        run = false
+                    end
                 end
+                runlengths[s] = runlength
             end
-            runlengths[s] = runlength
+            mean_run_lengths[i] = mean(runlengths)
         end
-        mean_run_lengths[i] = mean(runlengths)
     end
     return mean_run_lengths
 end

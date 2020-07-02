@@ -806,7 +806,7 @@ end
     @test converged==1
 end
 
-@testset "API/EM_master.jl API tests" begin
+@testset "API/EM_master.jl and reports.jl API tests" begin
     #CONSTANTS FOR HMM LEARNING
     replicates = 4 #repeat optimisation from this many seperately initialised samples from the prior
     Ks = [1,2,4,6] #mosaic class #s to test
@@ -852,9 +852,10 @@ end
 
     job_ids=Vector{Chain_ID}()
     push!(job_ids, Chain_ID("blacklist", 1, 0, 1))
+    push!(job_ids, Chain_ID("blacklist", 1, 0, 2))
     Ks=[1,2]; order_nos=[0,1]
-    for K in Ks, order in order_nos
-        push!(job_ids, Chain_ID("test", K, order, 1))
+    for K in Ks, order in order_nos, replicate in 1:2
+        push!(job_ids, Chain_ID("test", K, order, replicate))
     end
 
     wkpool=addprocs(2, topology=:master_worker)
@@ -896,6 +897,20 @@ end
     @test_throws ArgumentError execute_EM_jobs!(wkpool, em_jobset..., "testchains", delta_thresh=.01, verbose=true)
 
     rm("testchains")
+
+    @test_throws ArgumentError generate_reports(Dict{Chain_ID,Vector{EM_step}}(),seqdict)
+    @test_throws ArgumentError generate_reports(em_jobset[2],Dict{String,Vector{LongSequence{DNAAlphabet{2}}}}())
+
+    @test_throws ArgumentError BioBackgroundModels.report_chains(em_jobset[2],Dict{String,Vector{LongSequence{DNAAlphabet{2}}}}())
+
+    report_folders=generate_reports(em_jobset[2],seqdict)
+    folder=report_folders["test"]
+    @test "test"==folder.partition_id
+    show(folder.partition_report)
+    show(folder.replicate_report)
+    for id in folder.partition_report.best_repset
+        show(folder.chain_reports[id])
+    end
 end
 
 rm(genome)

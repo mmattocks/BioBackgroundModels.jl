@@ -9,6 +9,8 @@ struct Partition_Report
     partition_id::String
     naive_lh::Float64
     orddict::Dict{Integer,Order_Report}
+    best_model::Tuple{Chain_ID,HMM}
+    best_repset::Vector{Chain_ID}
 end
 
 function Base.show(io::IO, report::Partition_Report)
@@ -31,18 +33,21 @@ function Base.show(io::IO, report::Partition_Report)
     end
 end
 
-function partition_reports(chain_reports::Dict{Chain_ID,Chain_Report})
+function report_partitions(chain_reports::Dict{Chain_ID,Chain_Report})
     partitions=Vector{String}()
     orders=Vector{Integer}()
     Ks=Vector{Integer}()
+    reps=Vector{Integer}()
     for id in keys(chain_reports)
         !in(id.obs_id, partitions) && push!(partitions, id.obs_id)
         !in(id.order, orders) && push!(orders, id.order)
         !in(id.K, Ks) && push!(Ks, id.K)
+        !in(id.replicate, reps) && push!(reps, id.replicate)
     end
 
     reports=Vector{Partition_Report}()
     for partition in partitions
+        best_lh,best_rep=-Inf,Chain_ID("empty",1,0,1)
         naive_lh=1.
         orddict=Dict{Integer,Order_Report}()
         for order in orders
@@ -50,8 +55,9 @@ function partition_reports(chain_reports::Dict{Chain_ID,Chain_Report})
             fail_statevec=Vector{Float64}()
             conv_lh_vec=Vector{Float64}()
             fail_lh_vec=Vector{Float64}()
-            for id in keys(chain_reports)
+            for (id,report) in chain_reports
                 if id.obs_id==partition && id.order==order
+                    report.test_lh > best_lh && (best_lh=report.test_lh;best_rep=id)
                     naive_lh==1. && (naive_lh=chain_reports[id].naive_lh)
                     chain_reports[id].converged ? (push!(conv_statevec,id.K);
                     push!(conv_lh_vec,chain_reports[id].test_lh)) : (push!(fail_statevec,id.K);
@@ -60,7 +66,9 @@ function partition_reports(chain_reports::Dict{Chain_ID,Chain_Report})
             end
             orddict[order]=Order_Report(conv_statevec,conv_lh_vec,fail_statevec,fail_lh_vec)
         end
-        push!(reports,Partition_Report(partition,naive_lh,orddict))
+        best_model=(best_rep,chain_reports[best_rep].final_hmm)
+        best_repset=[Chain_ID(partition, best_rep.K, best_rep.order, rep) for rep in reps]
+        push!(reports,Partition_Report(partition,naive_lh,orddict,best_model,best_repset))
     end
     return reports
 end
