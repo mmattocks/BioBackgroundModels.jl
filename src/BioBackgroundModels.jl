@@ -45,5 +45,6 @@ include("utilities/log_prob_sum.jl")
 export lps
 include("reports/partition_report.jl")
 include("reports/replicate_convergence.jl")
+include("dev.jl")
 
 end # module
