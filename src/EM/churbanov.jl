@@ -12,7 +12,7 @@ function linear_step(hmm, observations, obs_lengths)
     Tijm_T = fill(-Inf,O,N,N,N); Tijm_t = fill(-Inf,O,N,N,N) #Ti,j(T,m) = 0 for all m; in logspace
         
     #RECURRENCE
-    βoi_T,Tijm_T,Eoγim_T=dev_sweep!(hmm,a,N,Γ,βoi_T,βoi_t,Tijm_T,Tijm_t,Eoγim_T,Eoγim_t,observations,mask,obs_lengths)
+    βoi_T,Tijm_T,Eoγim_T=backwards_sweep!(hmm,a,N,Γ,βoi_T,βoi_t,Tijm_T,Tijm_t,Eoγim_T,Eoγim_t,observations,mask,obs_lengths)
         
     #TERMINATION
     lls = c_llhs(hmm,observations[:,1])
