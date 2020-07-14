@@ -31,10 +31,10 @@ uuid = "68821587-b530-5797-8361-c406ea357684"
 version = "3.5.0+3"
 
 [[Automa]]
-deps = ["DataStructures", "Printf", "Test", "TranscodingStreams"]
-git-tree-sha1 = "1b1defa8b36d44dd22c715b5c884c8f795eea7fe"
+deps = ["DataStructures", "Printf", "Random", "Test", "TranscodingStreams"]
+git-tree-sha1 = "c81526bf5f6fb4616b4e22a3cd62ac20e255fd3c"
 uuid = "67c07d97-cdcb-5c2c-af73-a7f9c32a568b"
-version = "0.7.0"
+version = "0.8.0"
 
 [[AxisArrays]]
 deps = ["Dates", "IntervalSets", "IterTools", "RangeArrays"]
@@ -64,16 +64,16 @@ uuid = "47718e42-2ac5-11e9-14af-e5595289c2ea"
 version = "0.1.0"
 
 [[BioSequences]]
-deps = ["BioGenerics", "BioSymbols", "Combinatorics", "IndexableBitVectors", "Printf", "Random", "Twiddle"]
-git-tree-sha1 = "92da3f46866826c386ada963bfd616899aa24543"
+deps = ["BioGenerics", "BioSymbols", "Combinatorics", "IndexableBitVectors", "Printf", "Random", "StableRNGs", "Twiddle"]
+git-tree-sha1 = "3b04c643d3308b5c4f7f33bb02a578ab1ff13278"
 uuid = "7e6ae17a-c86d-528c-b3b9-7f778a29fe59"
-version = "2.0.1"
+version = "2.0.4"
 
 [[BioSymbols]]
 deps = ["Automa"]
-git-tree-sha1 = "b23dca91d1655e4746d23dd369feb41653fb6d1f"
+git-tree-sha1 = "ec77888ac3e78f9d372c2b533bdb52668f9e2b09"
 uuid = "3c28c6f8-a34d-59c4-9654-267d177fcfa9"
-version = "4.0.2"
+version = "4.0.4"
 
 [[BufferedStreams]]
 deps = ["Compat", "Test"]
@@ -100,9 +100,9 @@ version = "1.0.2"
 
 [[Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "SHA", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
-git-tree-sha1 = "37964a28fa8231d769faa10eec8c4436253c48ba"
+git-tree-sha1 = "054993b6611376ddb40203e973e954fd9d1d1902"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "3.11.0"
+version = "3.12.0"
 
 [[CompilerSupportLibraries_jll]]
 deps = ["Libdl", "Pkg"]
@@ -134,9 +134,9 @@ version = "0.21.2"
 
 [[DataStructures]]
 deps = ["InteractiveUtils", "OrderedCollections"]
-git-tree-sha1 = "af6d9c86e191c917c2276fbede1137e8ea20157f"
+git-tree-sha1 = "be680f1ad03c0a03796aa3fda5a2180df7f83b46"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.17.17"
+version = "0.17.18"
 
 [[DataValueInterfaces]]
 git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
@@ -163,9 +163,9 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[Distributions]]
 deps = ["FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns"]
-git-tree-sha1 = "5ad1c36bff608560df500e93aaeb5b86b4ad45ba"
+git-tree-sha1 = "78c4c32a2357a00a0a7d614880f02c2c6e1ec73c"
 uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
-version = "0.23.3"
+version = "0.23.4"
 
 [[EllipsisNotation]]
 git-tree-sha1 = "65dad386e877850e6fce4fc77f60fe75a468ce9d"
@@ -174,15 +174,15 @@ version = "0.4.0"
 
 [[FASTX]]
 deps = ["Automa", "BioGenerics", "BioSequences", "BioSymbols", "TranscodingStreams"]
-git-tree-sha1 = "f4a444282323b30965d0d183e5655d6b109bbec9"
+git-tree-sha1 = "6ab3b293f2e74249344f6cb1e3be5e60723ae746"
 uuid = "c2308a5c-f048-11e8-3e8a-31650f418d12"
-version = "1.1.1"
+version = "1.1.2"
 
 [[FillArrays]]
 deps = ["LinearAlgebra", "Random", "SparseArrays"]
-git-tree-sha1 = "44f561e293987ffc84272cd3d2b14b0b93123d63"
+git-tree-sha1 = "bf726ba7ce99e00d10bf63c031285fb9ab3676ae"
 uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
-version = "0.8.10"
+version = "0.8.11"
 
 [[Formatting]]
 deps = ["Printf"]
@@ -202,9 +202,9 @@ version = "0.1.0"
 
 [[GenomicFeatures]]
 deps = ["BioGenerics", "DataStructures", "IntervalTrees"]
-git-tree-sha1 = "ac2cf86be8f05459b5433a63849febfbbac72c7d"
+git-tree-sha1 = "47e6ebe1a507552d9714c38d49d580b4b295deb5"
 uuid = "899a7d2d-5c61-547b-bef9-6698a8d05446"
-version = "2.0.2"
+version = "2.0.3"
 
 [[IndexableBitVectors]]
 deps = ["Random", "Test"]
@@ -214,9 +214,9 @@ version = "1.0.0"
 
 [[Indexes]]
 deps = ["BGZFStreams", "BioCore", "BufferedStreams", "GenomicFeatures"]
-git-tree-sha1 = "68352120035ed5a9328ef918d3e867e5e6d5b36e"
+git-tree-sha1 = "c124510dd96e53f9095dbb484f4a8781cbfa0dcc"
 uuid = "4ffb77ac-cb80-11e8-1b35-4b78cc642f6d"
-version = "0.1.0"
+version = "0.1.1"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -367,9 +367,9 @@ version = "0.1.3"
 
 [[ProgressMeter]]
 deps = ["Distributed", "Printf"]
-git-tree-sha1 = "b3cb8834eee5410c7246734cc6f4f586fe0dc50e"
+git-tree-sha1 = "3e1784c27847bba115815d4d4e668b99873985e5"
 uuid = "92933f4c-e287-5a05-a399-4b506db050ca"
-version = "1.3.0"
+version = "1.3.1"
 
 [[QuadGK]]
 deps = ["DataStructures", "LinearAlgebra"]
@@ -448,15 +448,21 @@ git-tree-sha1 = "d8d8b8a9f4119829410ecd706da4cc8594a1e020"
 uuid = "276daf66-3868-5448-9aa4-cd146d93841b"
 version = "0.10.3"
 
+[[StableRNGs]]
+deps = ["Random", "Test"]
+git-tree-sha1 = "705f8782b1d532c6db75e0a986fb848a629f971a"
+uuid = "860ef19b-820b-49d6-a774-d7a799459cd3"
+version = "0.1.1"
+
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
 uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [[StatsBase]]
 deps = ["DataAPI", "DataStructures", "LinearAlgebra", "Missings", "Printf", "Random", "SortingAlgorithms", "SparseArrays", "Statistics"]
-git-tree-sha1 = "a6102b1f364befdb05746f386b67c6b7e3262c45"
+git-tree-sha1 = "19bfcb46245f69ff4013b3df3b977a289852c3a1"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-version = "0.33.0"
+version = "0.32.2"
 
 [[StatsFuns]]
 deps = ["Rmath", "SpecialFunctions"]
@@ -520,10 +526,10 @@ version = "1.0.1"
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
 [[UnicodePlots]]
-deps = ["Dates", "Random", "SparseArrays", "StatsBase", "Test"]
-git-tree-sha1 = "b8e58d4390ccebfa4f3bf502a45e08066eec3bf9"
+deps = ["Crayons", "Dates", "SparseArrays", "StatsBase"]
+git-tree-sha1 = "af0c29913f108f649999e74098814c7ef0f644de"
 uuid = "b8865327-cd53-5732-bb35-84acbb429228"
-version = "1.1.0"
+version = "1.2.0"
 
 [[YAML]]
 deps = ["Base64", "Dates", "Printf"]
@@ -533,6 +539,6 @@ version = "0.4.0"
 
 [[Zlib_jll]]
 deps = ["Libdl", "Pkg"]
-git-tree-sha1 = "622d8b6dc0c7e8029f17127703de9819134d1b71"
+git-tree-sha1 = "64b39656c75e67f85b4ac2b336c54674a39f599d"
 uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
-version = "1.2.11+14"
+version = "1.2.11+11"
