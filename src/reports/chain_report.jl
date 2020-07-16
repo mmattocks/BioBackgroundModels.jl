@@ -28,9 +28,9 @@ function Base.show(io::IO, report::Chain_Report)
         println("K$i: $(report.state_run_lengths[i].*float(report.id.order+1))")
     end
     println(" ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶")
-    lh_vec=Vector([report.convergence_values["logP(O|θ)"].data...])
+    lh_vec=Vector([report.convergence_values["logP(O|θ)"].data...][2:end])
 
-    lh_plot=lineplot(lh_vec;title="Chain likelihood evolution", xlabel="Training iterate", xlim=(0,length(lh_vec)), ylim= (floor(minimum(lh_vec),sigdigits=2),0), name="logP(O|θ)")
+    lh_plot=lineplot(lh_vec,[2:length(lh_vec)...];title="Chain likelihood evolution", xlabel="Training iterate", xlim=(0,length(lh_vec)), ylim= (floor(minimum(lh_vec),sigdigits=2),0), name="logP(O|θ)")
     lineplot!(lh_plot,[report.naive_lh for i in 1:length(lh_vec)], color=:magenta,name="naive")
     show(lh_plot)
     println("\n")
