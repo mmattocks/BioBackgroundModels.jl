@@ -30,7 +30,7 @@ function Base.show(io::IO, report::Chain_Report)
     println(" ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶")
     lh_vec=Vector([report.convergence_values["logP(O|θ)"].data...][2:end])
 
-    lh_plot=lineplot(lh_vec,[2:length(lh_vec)...];title="Chain likelihood evolution", xlabel="Training iterate", xlim=(0,length(lh_vec)), ylim= (floor(minimum(lh_vec),sigdigits=2),0), name="logP(O|θ)")
+    lh_plot=lineplot(lh_vec,[2:length(lh_vec)+1...];title="Chain likelihood evolution", xlabel="Training iterate", xlim=(0,length(lh_vec)), ylim= (floor(minimum(lh_vec),sigdigits=2),0), name="logP(O|θ)")
     lineplot!(lh_plot,[report.naive_lh for i in 1:length(lh_vec)], color=:magenta,name="naive")
     show(lh_plot)
     println("\n")
@@ -45,11 +45,13 @@ function Base.show(io::IO, report::Chain_Report)
     println()
 
     printstyled("\nConvergence Diagnostics\n",bold=true)
-    if report.convergence_diagnostic.name != "short"
+    if report.convergence_diagnostic.name == "short"
+        printstyled("Convergence diagnostics unavailable for chains <10 steps!\n", color=:yellow)
+    elseif report.convergence_diagnostic.name == "error"
+        printstyled("Convergence diagnostics errored! Zeros in autotransition matrix?\n", color=:red)
+    else        
         all(Bool.(report.convergence_diagnostic.nt.stationarity)) && all(Bool.(report.convergence_diagnostic.nt.test)) ? printstyled("Likelihood and autotransition probabilites converged and passing tests.\n", color=:green) : printstyled("Not all parameters converged or passing tests!\n",color=:red)
         display(report.convergence_diagnostic)
-    else
-        printstyled("Convergence diagnostics unavailable for chains <10 steps!\n", color=:yellow)
     end
 end
     
@@ -80,7 +82,16 @@ function report_chains(chains::Dict{Chain_ID,Vector{EM_step}}, test_sets::Dict{S
             chains_array[n,2:end]=get_diagonal_array(step.hmm)
         end
         convergence_values=Chains(chains_array,["logP(O|θ)", ["K"*string(i) for i in 1:id.K]...])
-        length(chain)>=10 ? (convergence_diagnostic=heideldiag(convergence_values)[1]) : (convergence_diagnostic=ChainDataFrame("short",(;:a=>[1.])))
+        if length(chain)>=10 
+            try
+                convergence_diagnostic=heideldiag(convergence_values)[1]
+            catch
+                convergence_diagnostic=ChainDataFrame("error",(;:a=>[1.]))            
+            end
+        else
+            convergence_diagnostic=ChainDataFrame("short",(;:a=>[1.]))
+        end
+
         id.K > 1 ? (mean_run_lengths=sim_run_lengths(get_diagonal_array(chain[end].hmm),1000)) : (mean_run_lengths=[Inf])
         test_lh=obs_lh_given_hmm(code_dict[(id.obs_id,id.order)], chain[end].hmm)
         reports[id]=Chain_Report(id, chain[end].hmm, test_lh, naive_lhs[id.obs_id], chain[end].delta, mean_run_lengths, convergence_values, convergence_diagnostic, chain[end].converged)
