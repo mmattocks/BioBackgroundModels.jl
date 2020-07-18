@@ -34,7 +34,7 @@ end
 function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, chains::Dict{Chain_ID,Vector{EM_step}},  input_channel::RemoteChannel, output_channel::RemoteChannel, chains_path::String; load_dict=Dict{Int64,LoadConfig}(), EM_func::Function=linear_step, delta_thresh=1e-3, max_iterates=5000, verbose=false)
     #argument checking
     length(worker_pool) < 1 && throw(ArgumentError("Worker pool must contain one or more worker IDs!"))
-    no_input_hmms < 1 && throw(ArgumentError("Zero input HMMs reported, likely job set from setup_EM_jobs passed incorrectly"))
+    no_input_hmms < 1 && throw(ArgumentError("Zero input HMMs reported, likely continuing from chains already converged beyond default delta_thresh for setup_EM_jobs"))
     length(chains) < 1 && throw(ArgumentError("No chains supplied, likely job set from setup_EM_jobs passed incorrectly"))
     !isready(input_channel) && throw(ArgumentError("HMM input channel has no contents, likely job set from setup_EM_jobs already executed"))
 
