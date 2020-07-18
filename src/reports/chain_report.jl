@@ -30,7 +30,7 @@ function Base.show(io::IO, report::Chain_Report)
     println(" ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶")
     lh_vec=Vector([report.convergence_values["logP(O|θ)"].data...][2:end])
 
-    lh_plot=lineplot(lh_vec,[2:length(lh_vec)+1...];title="Chain likelihood evolution", xlabel="Training iterate", xlim=(0,length(lh_vec)), ylim= (floor(minimum(lh_vec),sigdigits=2),0), name="logP(O|θ)")
+    lh_plot=lineplot([2:length(lh_vec)+1...],lh_vec;title="Chain likelihood evolution", xlabel="Training iterate", xlim=(0,length(lh_vec)+1), ylim= (floor(minimum(lh_vec),sigdigits=2),ceil(maximum(lh_vec),sigdigits=2)), name="logP(O|θ)")
     lineplot!(lh_plot,[report.naive_lh for i in 1:length(lh_vec)], color=:magenta,name="naive")
     show(lh_plot)
     println("\n")
