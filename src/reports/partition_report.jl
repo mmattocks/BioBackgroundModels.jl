@@ -9,7 +9,7 @@ struct Partition_Report
     partition_id::String
     naive_lh::Float64
     orddict::Dict{Integer,Order_Report}
-    best_model::Tuple{Chain_ID,HMM}
+    best_model::Tuple{Chain_ID,BHMM}
     best_repset::Vector{Chain_ID}
 end
 

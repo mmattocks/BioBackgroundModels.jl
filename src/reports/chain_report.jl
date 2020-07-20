@@ -1,6 +1,6 @@
 struct Chain_Report
     id::Chain_ID
-    final_hmm::HMM
+    final_hmm::BHMM
     test_lh::AbstractFloat
     naive_lh::AbstractFloat
     final_delta::AbstractFloat
@@ -13,27 +13,27 @@ end
 function Base.show(io::IO, report::Chain_Report)
     nominal_dict=Dict(0=>"th",1=>"st",2=>"nd",3=>"rd",4=>"th",5=>"th")
     haskey(nominal_dict,report.id.order) ? (nom_str=nominal_dict[report.id.order]) : (nom_str="th")
-    printstyled(stdout, "HMM EM Chain Results\n"; bold=true)
-    println("$(report.id.K)-state, $(report.id.order)$nom_str order HMM")
-    println("Trained on observation set \"$(report.id.obs_id)\"")
+    printstyled(io, stdout, "BHMM EM Chain Results\n"; bold=true)
+    println(io, "$(report.id.K)-state, $(report.id.order)$nom_str order BHMM")
+    println(io, "Trained on observation set \"$(report.id.obs_id)\"")
     report.test_lh > report.naive_lh ? (lh_str="greater"; lh_color=:green) : (lh_str="less"; lh_color=:red)
-    printstyled("Test logP(O|θ): $(report.test_lh), $lh_str than the naive model's $(report.naive_lh)\n"; color=lh_color)
-    println("Replicate $(report.id.replicate)")
-    report.converged ? println("Converged with final step δ $(report.final_delta)") : println("Failed to converge!")
-    println(" ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶")
-    println("Last θ:")
+    printstyled(io, "Test logP(O|θ): $(report.test_lh), $lh_str than the naive model's $(report.naive_lh)\n"; color=lh_color)
+    println(io, "Replicate $(report.id.replicate)")
+    report.converged ? println(io, "Converged with final step δ $(report.final_delta)") : println(io, "Failed to converge!")
+    println(io, " ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶")
+    println(io, "Last θ:")
     show(report.final_hmm)
-    println("State Mean Feature Length (bp)")
+    println(io, "State Mean Feature Length (bp)")
     for i in 1:length(report.state_run_lengths)
-        println("K$i: $(report.state_run_lengths[i].*float(report.id.order+1))")
+        println(io, "K$i: $(report.state_run_lengths[i].*float(report.id.order+1))")
     end
-    println(" ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶")
+    println(io, " ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶ ̶̶ ̶ ̶ ̶")
     lh_vec=Vector([report.convergence_values["logP(O|θ)"].data...][2:end])
 
     lh_plot=lineplot([2:length(lh_vec)+1...],lh_vec;title="Chain likelihood evolution", xlabel="Training iterate", xlim=(0,length(lh_vec)+1), ylim= (floor(minimum(lh_vec),sigdigits=2),ceil(maximum(lh_vec),sigdigits=2)), name="logP(O|θ)")
     lineplot!(lh_plot,[report.naive_lh for i in 1:length(lh_vec)], color=:magenta,name="naive")
-    show(lh_plot)
-    println("\n")
+    show(io, lh_plot)
+    println(io, "\n")
 
     k1vec=Vector([report.convergence_values["K1"].data...])
     k_plot=lineplot(k1vec, title="State p(Auto) evolution", xlabel="Training iterate", ylabel="prob", name="K1",ylim=(0,1),xlim=(0,length(k1vec)))
@@ -41,16 +41,16 @@ function Base.show(io::IO, report::Chain_Report)
         kvec=Vector([report.convergence_values["K$k"].data...])
         lineplot!(k_plot,kvec,name="K$k")
     end
-    show(k_plot)
-    println()
+    show(io,k_plot)
+    println(io)
 
-    printstyled("\nConvergence Diagnostics\n",bold=true)
+    printstyled(io,"\nConvergence Diagnostics\n",bold=true)
     if report.convergence_diagnostic.name == "short"
-        printstyled("Convergence diagnostics unavailable for chains <10 steps!\n", color=:yellow)
+        printstyled(io,"Convergence diagnostics unavailable for chains <10 steps!\n", color=:yellow)
     elseif report.convergence_diagnostic.name == "error"
-        printstyled("Convergence diagnostics errored! Zeros in autotransition matrix?\n", color=:red)
+        printstyled(io,"Convergence diagnostics errored! Zeros in autotransition matrix?\n", color=:red)
     else        
-        all(Bool.(report.convergence_diagnostic.nt.stationarity)) && all(Bool.(report.convergence_diagnostic.nt.test)) ? printstyled("Likelihood and autotransition probabilites converged and passing tests.\n", color=:green) : printstyled("Not all parameters converged or passing tests!\n",color=:red)
+        all(Bool.(report.convergence_diagnostic.nt.stationarity)) && all(Bool.(report.convergence_diagnostic.nt.test)) ? printstyled(io, "Likelihood and autotransition probabilites converged and passing tests.\n", color=:green) : printstyled(io, "Not all parameters converged or passing tests!\n",color=:red)
         display(report.convergence_diagnostic)
     end
 end
@@ -59,13 +59,13 @@ function latex_report(report::Chain_Report)
 
 end
 
-function report_chains(chains::Dict{Chain_ID,Vector{EM_step}}, test_sets::Dict{String,Vector{LongSequence{DNAAlphabet{2}}}}; naive_hmm=HMM(ones(1,1),[Categorical(4)]))
+function report_chains(chains::Dict{Chain_ID,Vector{EM_step}}, test_sets::Dict{String,Vector{LongSequence{DNAAlphabet{2}}}}; naive_hmm=BHMM(ones(1,1),[Categorical(4)]))
     job_ids=[id for (id,chain) in chains] # make list of chain_ids
     partitions=unique([id.obs_id for id in job_ids]) #get list of unique partitions represented among chain_ids
-    naive_order = Integer(log(4,length(naive_hmm.D[1].support))-1)
+    naive_order = Integer(log(4,length(naive_hmm.B[1].support))-1)
     for partition in partitions #check that all partitions are available for testing and make sure codes for naive hmm are generated by adding job_ids
         !(partition in keys(test_sets)) && throw(ArgumentError("Observation set $partition required by chains for testing not present in test sets!"))
-        push!(job_ids, Chain_ID(partition,length(naive_hmm.π0),naive_order, 1))
+        push!(job_ids, Chain_ID(partition,length(naive_hmm.a),naive_order, 1))
     end
 
     code_dict=code_job_obs(job_ids, test_sets) #code all the obs sets that are necessary ot perform our tests
@@ -100,11 +100,11 @@ function report_chains(chains::Dict{Chain_ID,Vector{EM_step}}, test_sets::Dict{S
     return reports
 end
 
-function get_diagonal_array(hmm::HMM)
-    k = length(hmm.π0)
+function get_diagonal_array(hmm::BHMM)
+    k = length(hmm.a)
     diagonal = zeros(k)
     @inbounds for i in 1:k
-        diagonal[i] = hmm.π[i,i]
+        diagonal[i] = hmm.A[i,i]
     end
     return diagonal
 end

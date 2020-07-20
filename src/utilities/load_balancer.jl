@@ -18,7 +18,7 @@ end
 function load_balancer(no_models::Integer, hmm_jobs::RemoteChannel, config::LoadConfig)
     lb_job_counter = 1
 
-    jobid::Chain_ID, start_iterate::Integer, hmm::HMM, job_norm::AbstractFloat, observations::Matrix = take!(hmm_jobs)
+    jobid::Chain_ID, start_iterate::Integer, hmm::BHMM, job_norm::AbstractFloat, observations::Matrix = take!(hmm_jobs)
 
     while (jobid.K < config.k_range[1] || jobid.K > config.k_range[end] || jobid.order < config.o_range[1] || jobid.order > config.o_range[end] || jobid in config.blacklist || (length(config.whitelist)>0 && !(jobid in config.whitelist))) && lb_job_counter <= no_models #while a job prohibited by load table, keep putting the job back and drawing a new one
         put!(hmm_jobs, (jobid, start_iterate, hmm, job_norm, observations))

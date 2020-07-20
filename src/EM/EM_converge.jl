@@ -4,7 +4,7 @@ function EM_converge!(hmm_jobs::RemoteChannel, output_hmms::RemoteChannel, no_mo
         jobid, start_iterate, hmm, job_norm, observations = load_balancer(no_models, hmm_jobs, load_config)
         jobid == 0 && break #no valid job for this worker according to load_table entry
 
-        start_iterate > max_iterates - 1 && throw(ArgumentError("HMM chain $jobid is already longer ($start_iterate iterates) than specified max_iterates!"))
+        start_iterate > max_iterates - 1 && throw(ArgumentError("BHMM chain $jobid is already longer ($start_iterate iterates) than specified max_iterates!"))
         curr_iterate = start_iterate
 
         #mask calculations here rather than ms_mle_step to prevent recalculation every iterate
@@ -13,8 +13,8 @@ function EM_converge!(hmm_jobs::RemoteChannel, output_hmms::RemoteChannel, no_mo
         obs_lengths = [findfirst(iszero,observations[o,:])-1 for o in 1:size(observations,1)] #mask calculations here rather than mle_step to prevent recalculation every iterate
         EM_func==bw_step && (observations=transpose(observations))
 
-        start_iterate == 1 && put!(output_hmms, (workerid, jobid, curr_iterate, hmm, job_norm, 0.0, false, 0.0)); #on the first iterate return the initial HMM immediately
-        verbose && @info "Fitting HMM on Wk $workerid, start iterate $start_iterate, $jobid with $(size(hmm)[1]) states and $(size(hmm)[2]) symbols..."
+        start_iterate == 1 && put!(output_hmms, (workerid, jobid, curr_iterate, hmm, job_norm, 0.0, false, 0.0)); #on the first iterate return the initial BHMM immediately
+        verbose && @info "Fitting BHMM on Wk $workerid, start iterate $start_iterate, $jobid with $(size(hmm)[1]) states and $(size(hmm)[2]) symbols..."
 
         curr_iterate += 1
 

@@ -40,8 +40,8 @@ function report_replicates(repset::Vector{Chain_ID},chains::Dict{Chain_ID,Vector
         state_array=zeros(length(chains[id]),id.K)
         for (it, step) in enumerate(chains[id])
             for k in 1:id.K
-                emission_array[it,:,k]=step.hmm.D[k].p
-                state_array[it,k]=step.hmm.π[k,k]
+                emission_array[it,:,k]=step.hmm.B[k].p
+                state_array[it,k]=step.hmm.A[k,k]
             end
         end
         emission_arrays[id]=emission_array

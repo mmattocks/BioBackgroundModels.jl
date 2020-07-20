@@ -15,7 +15,7 @@ end
 
 struct EM_step
     iterate::Integer
-    hmm::HMM
+    hmm::BHMM
     log_p::AbstractFloat
     delta::AbstractFloat
     converged::Bool
@@ -24,7 +24,7 @@ end
 
 function assert_step(iterate, hmm, log_p)
     iterate < 1 && throw(ArgumentError("EM_step iterate number must be a positive integer!"))
-    assert_hmm(hmm.π0, hmm.π, hmm.D)
+    assert_hmm(hmm.a, hmm.A, hmm.B)
     log_p > 0.0 && throw(ArgumentError("EM_step log probability value must be 0 or negative!"))
     return true
 end

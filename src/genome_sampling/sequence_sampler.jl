@@ -12,7 +12,7 @@ function get_sample_set(input_sample_jobs::RemoteChannel, completed_sample_jobs:
         sample_set_counter = 0
 
         while sample_set_counter < sample_set_length #while we don't yet have enough sample sequence
-            sample_scaffold::String, sample_Start::Integer, sample_End::Integer, sample_metaStart::Integer, sample_metaEnd::Integer, sample_sequence::LongSequence, strand::Char = get_sample(metacoordinate_bitarray, sample_window_min, sample_window_max,  partition_df, scaffold_sequence_record_dict, partitionid; stranded=stranded, deterministic=deterministic)
+            sample_scaffold::String, sample_Start::Integer, sample_End::Integer, sample_metaStart::Integer, sample_metaEnd::Integer, sample_sequence::LongSequence, strand::Char = get_sample(metacoordinate_bitarray, sample_window_min, sample_window_max,  partition_df, scaffold_sequence_record_dict; stranded=stranded, deterministic=deterministic)
             push!(sample_df,[sample_scaffold, sample_Start, sample_End, sample_sequence, strand]) #push the sample to the df
             sample_length = sample_End - sample_Start + 1
             sample_set_counter += sample_length #increase the counter by the length of the sampled sequence
@@ -51,7 +51,7 @@ end
                 end
 
                 #function to produce a single sample from a metacoordinate set and the feature df
-                function get_sample(metacoordinate_bitarray::BitArray, sample_window_min::Integer, sample_window_max::Integer, partition_df::DataFrame,  scaffold_seq_dict::Dict{String,LongSequence}, partitionid::String; stranded::Bool=false, deterministic::Bool=false)
+                function get_sample(metacoordinate_bitarray::BitArray, sample_window_min::Integer, sample_window_max::Integer, partition_df::DataFrame,  scaffold_seq_dict::Dict{String,LongSequence}; stranded::Bool=false, deterministic::Bool=false)
                     proposal_acceptance = false
                     sample_metaStart = 0
                     sample_metaEnd = 0

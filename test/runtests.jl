@@ -18,44 +18,44 @@ Sys.islinux() ? posfasta =  (@__DIR__) * "/syntheticpos.fa" : posfasta = (@__DIR
 
 Random.seed!(1)
 
-@testset "HMM/HMM.jl constructors" begin
-    good_π0 = [.20,.30,.20,.30]
-    bad_probvec_π0 = [.25,.25,.25,.27]
-    good_π = fill(.25,4,4)
-    bad_probvec_π = deepcopy(good_π)
-    bad_probvec_π[:,3].=.27
-    bad_size_π = fill(.25,5,4)
+@testset "BHMM/BHMM.jl constructors" begin
+    good_a = [.20,.30,.20,.30]
+    bad_probvec_a = [.25,.25,.25,.27]
+    good_A = fill(.25,4,4)
+    bad_probvec_A = deepcopy(good_A)
+    bad_probvec_A[:,3].=.27
+    bad_size_A = fill(.25,5,4)
     good_D = Categorical([.25,.25,.25,.25])
     bad_size_D = Categorical([.2,.2,.2,.2,.2])
     good_Dvec = [good_D for i in 1:4]
     bad_size_Dvec =[good_D, good_D, good_D, bad_size_D]
     bad_length_Dvec=[good_D for i in 1:5]
 
-    @test_throws ArgumentError HMM(bad_probvec_π0, good_π, good_Dvec)
-    @test_throws ArgumentError HMM(good_π0, bad_probvec_π, good_Dvec)
-    @test_throws ArgumentError HMM(good_π0, bad_size_π, good_Dvec)
-    @test_throws ArgumentError HMM(good_π0, good_π, bad_size_Dvec)
-    @test_throws ArgumentError HMM(good_π0, good_π, bad_length_Dvec)
+    @test_throws ArgumentError BHMM(bad_probvec_a, good_A, good_Dvec)
+    @test_throws ArgumentError BHMM(good_a, bad_probvec_A, good_Dvec)
+    @test_throws ArgumentError BHMM(good_a, bad_size_A, good_Dvec)
+    @test_throws ArgumentError BHMM(good_a, good_A, bad_size_Dvec)
+    @test_throws ArgumentError BHMM(good_a, good_A, bad_length_Dvec)
 
-    hmm=HMM(good_π0, good_π, good_Dvec)
-    @test typeof(hmm)==HMM{Univariate, Float64}
-    @test hmm.π0==good_π0
-    @test hmm.π==good_π
-    @test hmm.D==good_Dvec 
+    hmm=BHMM(good_a, good_A, good_Dvec)
+    @test typeof(hmm)==BHMM{Float64}
+    @test hmm.a==good_a
+    @test hmm.A==good_A
+    @test hmm.B==good_Dvec 
     @test size(hmm) == (4,4)
 
     hmm_copy=copy(hmm)
-    @test hmm.π0==hmm_copy.π0
-    @test hmm.π==hmm_copy.π
-    @test hmm.D==hmm_copy.D
+    @test hmm.a==hmm_copy.a
+    @test hmm.A==hmm_copy.A
+    @test hmm.B==hmm_copy.B
 
-    hmm2=HMM(good_π, good_Dvec)
-    @test hmm2.π0==[.25,.25,.25,.25]
-    @test hmm2.π==good_π
-    @test hmm2.D==good_Dvec
+    hmm2=BHMM(good_A, good_Dvec)
+    @test hmm2.a==[.25,.25,.25,.25]
+    @test hmm2.A==good_A
+    @test hmm2.B==good_Dvec
 end
 
-@testset "HMM/chain.jl Chain_ID and EM_step constructors" begin
+@testset "BHMM/chain.jl Chain_ID and EM_step constructors" begin
     obs_id="test"
     K,zero_k,neg_K=4,0,-1
     order,badorder=0,-1
@@ -74,10 +74,10 @@ end
     @test id.order==order
     @test id.replicate==replicate
 
-    good_π = fill(.25,4,4)
+    good_A = fill(.25,4,4)
     good_D = Categorical([.25,.25,.25,.25])
     good_Dvec = [good_D for i in 1:4]
-    hmm=HMM(good_π,good_Dvec)
+    hmm=BHMM(good_A,good_Dvec)
     log_p=-.001
 
     @test_throws ArgumentError EM_step(0,hmm,0.0,0.0,true)
@@ -105,7 +105,7 @@ end
     K=4
     order=2
     hmm=autotransition_init(K,order)
-    @test typeof(hmm)==HMM{Univariate,Float64}
+    @test typeof(hmm)==BHMM{Float64}
     @test size(hmm)==(4,64)
 end
 
@@ -139,7 +139,7 @@ end
     
     @test high_set[1]==Chain_ID("test",6,2,1)
     @test high_set[2]==1
-    @test typeof(high_set[3])==HMM{Univariate,Float64}
+    @test typeof(high_set[3])==BHMM{Float64}
     @test high_set[4]==obs_lh_given_hmm(high_set[5],high_set[3],linear=false)
     @test typeof(high_set[5])==Matrix{UInt8}
 end
@@ -358,7 +358,7 @@ end
     #test get_feature_row_index ArgumentError
     @test_throws DomainError get_feature_row_index(partition,0)
 
-    @test length(get_sample(metacoordinate_bitarray, 1, 250, partition, scaffold_sequence_record_dict, "exon")[6])==60
+    @test length(get_sample(metacoordinate_bitarray, 1, 250, partition, scaffold_sequence_record_dict)[6])==60
     
     synthetic_seq = BioSequences.LongSequence{DNAAlphabet{2}}(generate_synthetic_seq())
     for (partid, df) in sample_record_dfs
@@ -385,8 +385,8 @@ end
 @testset "likelihood_funcs/hmm.jl & bg_lh_matrix.jl functions" begin
     pvec = [.4,.3,.2,.1]
     trans = ones(1,1)
-    D = [Categorical(pvec)]
-    hmm = HMM(trans, D)
+    B = [Categorical(pvec)]
+    hmm = BHMM(trans, B)
 
     testseq=zeros(Int64,1,5)
     testseq[1:4] = [1,2,3,4]
@@ -398,8 +398,8 @@ end
     pvec=[.25,.25,.25,.25]
     trans = [.9 .1
          .1 .9]
-    D = [Categorical(pvec), Categorical(pvec)]
-    hmm = HMM(trans, D)
+    B = [Categorical(pvec), Categorical(pvec)]
+    hmm = BHMM(trans, B)
 
     @test isapprox(obs_lh_given_hmm(testseq,hmm),obs_lh_given_hmm(testseq,hmm,linear=false))
     @test isapprox(sum(get_BGHMM_symbol_lh(testseq,hmm)), obs_lh_given_hmm(testseq,hmm))
@@ -413,10 +413,10 @@ end
     Dex = [Categorical([.3, .1, .3, .3]),Categorical([.15, .35, .35, .15])]
     Dper = [Categorical([.15, .35, .35, .15]),Categorical([.4, .1, .1, .4])]
     Dint = [Categorical([.4, .1, .1, .4]),Categorical([.45, .05, .05, .45])]
-    BGHMM_dict = Dict{String,Tuple{HMM, Int64, Float64}}()
-    BGHMM_dict["exon"] = (HMM(trans, Dex), 0, 0)
-    BGHMM_dict["periexonic"] = (HMM(trans, Dper), 0, 0)
-    BGHMM_dict["intergenic"] = (HMM(trans, Dint), 0, 0)
+    BGHMM_dict = Dict{String,Tuple{BHMM, Int64, Float64}}()
+    BGHMM_dict["exon"] = (BHMM(trans, Dex), 0, 0)
+    BGHMM_dict["periexonic"] = (BHMM(trans, Dper), 0, 0)
+    BGHMM_dict["intergenic"] = (BHMM(trans, Dint), 0, 0)
 
     position_length=141;perigenic_pad=250;
     position_df = make_padded_df(posfasta, gff, genome, index, position_length)
@@ -464,11 +464,11 @@ end
 end
 
 @testset "EM/baum-welch.jl MS_HMMBase equivalency and functions" begin
-    π = [.5 .5
+    A = [.5 .5
          .5 .5]
-    D = [Categorical(ones(4)/4), Categorical([.7,.1,.1,.1])]
-    hmm = HMM(π, D)
-    log_π = log.(hmm.π)
+    B = [Categorical(ones(4)/4), Categorical([.7,.1,.1,.1])]
+    hmm = BHMM(A, B)
+    log_A = log.(hmm.A)
 
     obs = zeros(UInt8, 22,1)
     obs[1:21] = [4,3,3,2,3,2,1,1,2,3,3,3,4,4,2,3,2,3,4,3,2]
@@ -483,14 +483,14 @@ end
     #TEST LOG LIKELIHOOD FN
     @test transpose(lls[:,1:end-1,1]) == m_lls
     
-    log_α = BioBackgroundModels.messages_forwards_log(hmm.π0, hmm.π, lls,  obs_lengths)
-    m_log_α = mouchet_messages_forwards_log(hmm.π0, hmm.π, m_lls)
+    log_α = BioBackgroundModels.messages_forwards_log(hmm.a, hmm.A, lls,  obs_lengths)
+    m_log_α = mouchet_messages_forwards_log(hmm.a, hmm.A, m_lls)
 
     #TEST FORWARD MESSAGES FN
     @test transpose(log_α[:,1:end-1,1]) == m_log_α
 
-    log_β = BioBackgroundModels.messages_backwards_log(hmm.π, lls,  obs_lengths)
-    m_log_β = mouchet_messages_backwards_log(hmm.π, m_lls)
+    log_β = BioBackgroundModels.messages_backwards_log(hmm.A, lls,  obs_lengths)
+    m_log_β = mouchet_messages_backwards_log(hmm.A, m_lls)
 
     #TEST BACKWARDS  MESSAGES FN
     @test isapprox(transpose(log_β[:,1:end-1,1]),  m_log_β)
@@ -514,13 +514,13 @@ end
     m_log_ξ = zeros(T, K, K)
 
     for t = 1:T-1, i = 1:K, j = 1:K
-        m_log_ξ[t,i,j] = m_log_α[t,i] + log_π[i,j] + m_log_β[t+1,j] + m_lls[t+1,j] - normalizer
+        m_log_ξ[t,i,j] = m_log_α[t,i] + log_A[i,j] + m_log_β[t+1,j] + m_lls[t+1,j] - normalizer
     end
 
     for i = 1:K, j = 1:K, o = 1:O
         obsl = obs_lengths[o]
         for t = 1:obsl-1 #log_ξ & log_γ calculated to T-1 for each o
-           log_ξ[t,o,i,j] = lps(log_α[t,o,i], log_π[i,j], log_β[t+1,o,j], lls[t+1,o,j], -log_pobs[o])
+           log_ξ[t,o,i,j] = lps(log_α[t,o,i], log_A[i,j], log_β[t+1,o,j], lls[t+1,o,j], -log_pobs[o])
            log_γ[t,o,i] = lps(log_α[t,o,i], log_β[t,o,i], -log_pobs[o])
         end
         t=obsl #log_ξ @ T = 0
@@ -531,7 +531,7 @@ end
     ξ = exp.(log_ξ)
     k_ξ = sum(ξ, dims=[3,4])
     nan_mask = k_ξ .== 0; k_ξ[nan_mask] .= Inf #prevent NaNs in dummy renorm arising from multiple sequences indexing
-    ξ  ./=  k_ξ #dummy renorm across K to keep numerical creep from causing isprobvec to fail on new new_π during hmm creation
+    ξ  ./=  k_ξ #dummy renorm across K to keep numerical creep from causing isprobvec to fail on new new_A during hmm creation
 
     m_ξ = exp.(m_log_ξ)
     m_ξ ./= sum(m_ξ, dims=[2,3])
@@ -550,10 +550,10 @@ end
 
     # "Testing initial and transition matrix calcs..."
 
-    m_new_π = sum(m_ξ[1:end-1,:,:], dims=1)[1,:,:]
-    m_new_π ./= sum(m_new_π, dims=2)
+    m_new_A = sum(m_ξ[1:end-1,:,:], dims=1)[1,:,:]
+    m_new_A ./= sum(m_new_A, dims=2)
 
-    new_π = zeros(K,K)
+    new_A = zeros(K,K)
     for i=1:K, j=1:K
         ∑otξ_vec = zeros(O)
         ∑otγ_vec = zeros(O)
@@ -561,26 +561,26 @@ end
             ∑otξ_vec[o] = sum(ξ[1:obs_lengths[o]-1,o,i,j])
             ∑otγ_vec[o] = sum(γ[1:obs_lengths[o]-1,o,i])
         end
-        new_π[i,j] = sum(∑otξ_vec) / sum(∑otγ_vec)
+        new_A[i,j] = sum(∑otξ_vec) / sum(∑otγ_vec)
     end
-    new_π ./= sum(new_π, dims=[2]) #dummy renorm
+    new_A ./= sum(new_A, dims=[2]) #dummy renorm
 
     #check equivalency of transition matrix calculations
-    @test isapprox(m_new_π,new_π)
+    @test isapprox(m_new_A,new_A)
 
-    m_new_π0 = exp.((m_log_α[1,:] + m_log_β[1,:]) .- normalizer)
-    m_new_π0 ./= sum(m_new_π0)
+    m_new_a = exp.((m_log_α[1,:] + m_log_β[1,:]) .- normalizer)
+    m_new_a ./= sum(m_new_a)
 
-    new_π0 = (sum(γ[1,:,:], dims=1)./sum(sum(γ[1,:,:], dims=1)))[1,:]
-    new_π0 ./= sum(new_π0) #dummy renorm
+    new_a = (sum(γ[1,:,:], dims=1)./sum(sum(γ[1,:,:], dims=1)))[1,:]
+    new_a ./= sum(new_a) #dummy renorm
 
-    @test isapprox(m_new_π0,new_π0)
+    @test isapprox(m_new_a,new_a)
 
     # "Testing distribution calcs..."
 
     F=Univariate
     m_D = Distribution{F}[]
-    for (i, d) in enumerate(hmm.D)
+    for (i, d) in enumerate(hmm.B)
         # Super hacky...
         # https://github.com/JuliaStats/Distributions.jl/issues/809
         push!(m_D, fit_mle(eval(typeof(d).name.name), permutedims(obs[1:21]), m_γ[:,i]))
@@ -589,17 +589,17 @@ end
     obs_mask = .!nan_mask
     obs_collection = obs[obs_mask[:,:]]
 
-    D = Distribution{F}[]
-    @inbounds for (i, d) in enumerate(hmm.D)
+    B = Distribution{F}[]
+    @inbounds for (i, d) in enumerate(hmm.B)
         # Super hacky...
         # https://github.com/JuliaStats/Distributions.jl/issues/809
         γ_d = γ[:,:,i]
-        push!(D, fit_mle(eval(typeof(d).name.name), obs_collection, γ_d[obs_mask[:,:]]))
+        push!(B, fit_mle(eval(typeof(d).name.name), obs_collection, γ_d[obs_mask[:,:]]))
         #slowest call by orders of magnitude
     end
 
     #test maximization equivalency
-    for (d, dist) in enumerate(D)
+    for (d, dist) in enumerate(B)
         @test isapprox(dist.support, m_D[d].support)
         @test isapprox(dist.p, m_D[d].p)
     end
@@ -622,15 +622,19 @@ end
     other_hmm = BioBackgroundModels.bw_step(hmm, otherobs, dblobs_lengths)
 
     for n in fieldnames(typeof(new_hmm[1]))
-        if n == :D
-            for (d, dist) in enumerate(D)
-                @test isapprox(dist.support,mouchet_hmm[1].D[d].support)
-                @test isapprox(dist.p,mouchet_hmm[1].D[d].p)
-                @test isapprox(dist.support,dbl_hmm[1].D[d].support)
-                @test isapprox(dist.p,dbl_hmm[1].D[d].p)
-                @test isapprox(dist.support, other_hmm[1].D[d].support)
-                @test !isapprox(dist.p, other_hmm[1].D[d].p)
+        if n == :B
+            for (d, dist) in enumerate(new_hmm[1].B)
+                @test dist.support == mouchet_hmm[1].B[d].support
+                @test isapprox(dist.p,mouchet_hmm[1].B[d].p)
+                @test dist.support == dbl_hmm[1].B[d].support
+                @test isapprox(dist.p,dbl_hmm[1].B[d].p)
+                @test dist.support == other_hmm[1].B[d].support
+                @test !isapprox(dist.p, other_hmm[1].B[d].p)
             end
+        elseif n == :partition
+            @test getfield(new_hmm[1],n) == getfield(mouchet_hmm[1],n)
+            @test getfield(new_hmm[1],n) == getfield(dbl_hmm[1],n)
+            @test getfield(new_hmm[1],n) == getfield(other_hmm[1],n)
         else
             @test isapprox(getfield(new_hmm[1],n), getfield(mouchet_hmm[1],n))
             @test isapprox(getfield(new_hmm[1],n), getfield(dbl_hmm[1],n))
@@ -652,7 +656,7 @@ end
     workerid, jobid, iterate, hmm3, log_p, epsilon, converged = take!(output_hmms)
     @test jobid == chainid
     @test iterate == 3
-    @test assert_hmm(hmm3.π0, hmm3.π, hmm3.D)
+    @test assert_hmm(hmm3.a, hmm3.A, hmm3.B)
     @test size(hmm3) == size(hmm) == (2,4)
     @test log_p < 1
     @test log_p == obs_lh_given_hmm(transpose(obs),hmm, linear=false)
@@ -661,7 +665,7 @@ end
     workerid, jobid, iterate, hmm4, log_p, epsilon, converged = take!(output_hmms)
     @test jobid == chainid
     @test iterate == 4
-    @test assert_hmm(hmm4.π0, hmm4.π, hmm4.D)
+    @test assert_hmm(hmm4.a, hmm4.A, hmm4.B)
     @test size(hmm4) == size(hmm) == (2,4)
     @test log_p < 1
     @test log_p == obs_lh_given_hmm(transpose(obs),hmm3,linear=false)
@@ -690,10 +694,10 @@ end
 
 @testset "EM/churbanov.jl Baum-Welch equivalency and functions" begin
     # "Setting up for MLE function tests.."
-    π = fill((1/6),6,6)
-    D = [Categorical(ones(4)/4), Categorical([.7,.05,.15,.1]),Categorical([.15,.35,.4,.1]), Categorical([.6,.15,.15,.1]),Categorical([.1,.4,.4,.1]), Categorical([.2,.2,.3,.3])]
-    hmm = HMM(π, D)
-    log_π = log.(hmm.π)
+    A = fill((1/6),6,6)
+    B = [Categorical(ones(4)/4), Categorical([.7,.05,.15,.1]),Categorical([.15,.35,.4,.1]), Categorical([.6,.15,.15,.1]),Categorical([.1,.4,.4,.1]), Categorical([.2,.2,.3,.3])]
+    hmm = BHMM(A, B)
+    log_A = log.(hmm.A)
 
     obs = zeros(Int64,1,250)
     obs[1:249] = rand(1:4,249)
@@ -730,22 +734,26 @@ end
     ms_hmm = BioBackgroundModels.bw_step(hmm, Array(transpose(otherobs)),dblobs_lengths)
 
     for n in fieldnames(typeof(new_hmm[1]))
-        if n == :D
-            for (d, dist) in enumerate(D)
-            @test isapprox(new_hmm[1].D[d].support,mouchet_hmm[1].D[d].support)
-            @test isapprox(new_hmm[1].D[d].p,mouchet_hmm[1].D[d].p)
-            @test new_hmm[1].D[d].support==ms_sng[1].D[d].support
-            @test isapprox(new_hmm[1].D[d].p,ms_sng[1].D[d].p)
-            @test new_hmm[1].D[d].support==dbl_hmm[1].D[d].support
-            @test isapprox(new_hmm[1].D[d].p,dbl_hmm[1].D[d].p)
-            @test new_hmm[1].D[d].support==ms_dbl[1].D[d].support
-            @test isapprox(new_hmm[1].D[d].p,ms_dbl[1].D[d].p)
-            @test new_hmm[1].D[d].support==other_hmm[1].D[d].support
-            @test ms_hmm[1].D[d].support==other_hmm[1].D[d].support
-            @test !isapprox(new_hmm[1].D[d].p, other_hmm[1].D[d].p)
-            @test isapprox(ms_hmm[1].D[d].p, other_hmm[1].D[d].p, atol=.005)
+        if n == :B
+            for (d, dist) in enumerate(new_hmm[1].B)
+            @test dist.support==mouchet_hmm[1].B[d].support
+            @test isapprox(dist.p,mouchet_hmm[1].B[d].p)
+            @test dist.support==ms_sng[1].B[d].support
+            @test isapprox(dist.p,ms_sng[1].B[d].p)
+            @test dist.support==dbl_hmm[1].B[d].support
+            @test isapprox(dist.p,dbl_hmm[1].B[d].p)
+            @test dist.support==ms_dbl[1].B[d].support
+            @test isapprox(dist.p,ms_dbl[1].B[d].p)
+            @test dist.support==other_hmm[1].B[d].support
+            @test ms_hmm[1].B[d].support==other_hmm[1].B[d].support
+            @test !isapprox(dist.p, other_hmm[1].B[d].p)
+            @test isapprox(ms_hmm[1].B[d].p, other_hmm[1].B[d].p, atol=.005)
 
             end
+        elseif n == :partition
+            @test getfield(new_hmm[1],n) == getfield(mouchet_hmm[1],n)
+            @test getfield(new_hmm[1],n) == getfield(dbl_hmm[1],n)
+            @test getfield(new_hmm[1],n) == getfield(other_hmm[1],n)
         else
             @test isapprox(getfield(new_hmm[1],n), getfield(mouchet_hmm[1],n))
             @test isapprox(getfield(new_hmm[1],n), getfield(ms_sng[1],n))
@@ -773,7 +781,7 @@ end
     workerid, jobid, iterate, hmm3, log_p, delta, converged = take!(output_hmms)
     @test jobid == chainid
     @test iterate == 3
-    @test BioBackgroundModels.assert_hmm(hmm3.π0, hmm3.π, hmm3.D)
+    @test BioBackgroundModels.assert_hmm(hmm3.a, hmm3.A, hmm3.B)
     @test size(hmm3) == size(hmm) == (6,4)
     @test log_p < 1
     @test log_p == linear_likelihood(obs, hmm)
@@ -782,7 +790,7 @@ end
     workerid, jobid, iterate, hmm4, log_p, delta, converged = take!(output_hmms)
     @test jobid == chainid
     @test iterate == 4
-    @test BioBackgroundModels.assert_hmm(hmm4.π0, hmm4.π, hmm4.D)
+    @test BioBackgroundModels.assert_hmm(hmm4.a, hmm4.A, hmm4.B)
     @test size(hmm4) == size(hmm) == (6,4)
     @test log_p < 1
     @test log_p == linear_likelihood(obs, hmm3)
@@ -807,7 +815,7 @@ end
 end
 
 @testset "API/EM_master.jl and reports.jl API tests" begin
-    #CONSTANTS FOR HMM LEARNING
+    #CONSTANTS FOR BHMM LEARNING
     replicates = 4 #repeat optimisation from this many seperately initialised samples from the prior
     Ks = [1,2,4,6] #mosaic class #s to test
     order_nos = [0,1,2] #DNA kmer order #s to test
@@ -839,9 +847,9 @@ end
         @test last_norm == linear_likelihood(observations, hmm)
         obs_lengths = [findfirst(iszero,observations[o,:])-1 for o in 1:size(observations)[1]]
         #make sure input HMMs are valid and try to mle_step them and ensure their 1-step children are valid
-        @test assert_hmm(hmm.π0, hmm.π, hmm.D)
+        @test assert_hmm(hmm.a, hmm.A, hmm.B)
         new_hmm, prob = linear_step(hmm,observations,obs_lengths)
-        @test assert_hmm(hmm.π0, hmm.π, hmm.D)
+        @test assert_hmm(hmm.a, hmm.A, hmm.B)
         @test prob < 0
     end
 
@@ -874,7 +882,7 @@ end
     for (chain_id,chain) in em_jobset[2]
         @test chain[end].converged == true
         @test chain[end].delta <= 10000
-        @test typeof(chain[end].hmm)==HMM{Univariate,Float64}
+        @test typeof(chain[end].hmm)==BHMM{Float64}
         @test 1 <= chain[end].iterate <= 5000
     end
 
@@ -887,7 +895,7 @@ end
     for (chain_id,chain) in em_jobset[2]
         @test chain[end].converged == true
         @test chain[end].delta <= .1
-        @test typeof(chain[end].hmm)==HMM{Univariate,Float64}
+        @test typeof(chain[end].hmm)==BHMM{Float64}
         @test 1 <= chain[end].iterate <= 5000
     end
 

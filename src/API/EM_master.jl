@@ -1,4 +1,4 @@
-#function to setup an HMM chains dictionary and RemoteChannel for learning jobs, given a vector of state #s, order_nos, replicates to train, the dictionary to fill, the RemoteChannel and the training sequences
+#function to setup an BHMM chains dictionary and RemoteChannel for learning jobs, given a vector of state #s, order_nos, replicates to train, the dictionary to fill, the RemoteChannel and the training sequences
 #resumes any existing non-converged chains, otherwise initialises hmms for new chains given provided constants
 function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{LongSequence{DNAAlphabet{2}}}}; delta_thresh::Float64=1e-3,  chains::Dict{Chain_ID,Vector{EM_step}}=Dict{Chain_ID,Vector{EM_step}}(), init_function::Function=autotransition_init)
     #argument checking
@@ -6,12 +6,12 @@ function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{
     length(obs_sets) < 1 && throw(ArgumentError("Empty observation sets!"))
 
     no_input_hmms = length(job_ids)
-    input_channel= RemoteChannel(()->Channel{Tuple}(no_input_hmms*3)) #channel to hold HMM learning jobs
+    input_channel= RemoteChannel(()->Channel{Tuple}(no_input_hmms*3)) #channel to hold BHMM learning jobs
     output_channel= RemoteChannel(()->Channel{Tuple}(Inf)) #channel to take EM iterates off of
 
     code_dict = code_job_obs(job_ids, obs_sets)
 
-    @showprogress 1 "Setting up HMMs..." for id in job_ids #for each jobid, add an initial HMM to input_channel for EM_workers
+    @showprogress 1 "Setting up HMMs..." for id in job_ids #for each jobid, add an initial BHMM to input_channel for EM_workers
         if haskey(chains, id) && length(chains[id]) > 0 #true if resuming from incomplete chain
             chain_end=chains[id][end]
             if !chain_end.converged || (chain_end.converged && chain_end.delta > delta_thresh)#push the last hmm iterate for nonconverged chains to the input channel with coded observations and values for chain resumption
@@ -21,7 +21,7 @@ function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{
             end
 
         else 
-            hmm = init_function(id.K, id.order) #initialise first HMM in chain
+            hmm = init_function(id.K, id.order, id.obs_id) #initialise first BHMM in chain
             chains[id] = Vector{EM_step}() #initialise the relevant chain
             obs=code_dict[(id.obs_id,id.order)]
             lh=obs_lh_given_hmm(obs,hmm,linear=false)
@@ -36,9 +36,9 @@ function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, ch
     length(worker_pool) < 1 && throw(ArgumentError("Worker pool must contain one or more worker IDs!"))
     no_input_hmms < 1 && throw(ArgumentError("Zero input HMMs reported, likely continuing from chains already converged beyond default delta_thresh for setup_EM_jobs"))
     length(chains) < 1 && throw(ArgumentError("No chains supplied, likely job set from setup_EM_jobs passed incorrectly"))
-    !isready(input_channel) && throw(ArgumentError("HMM input channel has no contents, likely job set from setup_EM_jobs already executed"))
+    !isready(input_channel) && throw(ArgumentError("BHMM input channel has no contents, likely job set from setup_EM_jobs already executed"))
 
-    #SEND HMM FIT JOBS TO WORKERS
+    #SEND BHMM FIT JOBS TO WORKERS
     if isready(input_channel) > 0
         @info "Fitting HMMs.."
         #WORKERS FIT HMMS

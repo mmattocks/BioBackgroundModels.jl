@@ -9,11 +9,11 @@ hmm, log_likelihood = ms_mle_step(hmm, observations)
 ```
 """
 
-function bw_step(hmm::AbstractHMM{F}, observations, obs_lengths) where F
+function bw_step(hmm::BHMM, observations, obs_lengths)
     lls = bw_llhs(hmm, observations)
-    log_α = messages_forwards_log(hmm.π0, hmm.π, lls, obs_lengths)
-    log_β = messages_backwards_log(hmm.π, lls, obs_lengths)
-    log_π = log.(hmm.π)
+    log_α = messages_forwards_log(hmm.a, hmm.A, lls, obs_lengths)
+    log_β = messages_backwards_log(hmm.A, lls, obs_lengths)
+    log_A = log.(hmm.A)
 
     K,Tmaxplus1,O = size(lls) #the last T value is the 0 end marker of the longest T
 
@@ -35,7 +35,7 @@ function bw_step(hmm::AbstractHMM{F}, observations, obs_lengths) where F
         i,j,o = idx[1],idx[2],idx[3]
         obsl = obs_lengths[o]
         @inbounds for t = 1:obsl-1 #log_ξ & log_γ calculated to T-1 for each o
-           log_ξ[t,o,i,j] = lps(log_α[t,o,i], log_π[i,j], log_β[t+1,o,j], lls[t+1,o,j], -log_pobs[o])
+           log_ξ[t,o,i,j] = lps(log_α[t,o,i], log_A[i,j], log_β[t+1,o,j], lls[t+1,o,j], -log_pobs[o])
            log_γ[t,o,i] = lps(log_α[t,o,i], log_β[t,o,i], -log_pobs[o])
         end
         t=obsl #log_ξ @ T = 0
@@ -48,7 +48,7 @@ function bw_step(hmm::AbstractHMM{F}, observations, obs_lengths) where F
     ∑k_ξ = sum(ξ, dims=[3,4])
     nan_mask = ∑k_ξ .== 0
     ∑k_ξ[nan_mask] .= Inf #prevent NaNs in dummy renorm
-    ξ  ./=  ∑k_ξ #dummy renorm across K to keep numerical creep from causing isprobvec to fail on new new_π during hmm creation
+    ξ  ./=  ∑k_ξ #dummy renorm across K to keep numerical creep from causing isprobvec to fail on new new_A during hmm creation
 
     γ = similar(log_γ)
     γ .= exp.(log_γ)
@@ -57,7 +57,7 @@ function bw_step(hmm::AbstractHMM{F}, observations, obs_lengths) where F
     γ ./= ∑k_γ #dummy renorm
 
     # M-step
-    new_π = zeros(K,K)
+    new_A = zeros(K,K)
     for i=1:K, j=1:K
         ∑otξ_vec = zeros(O)
         ∑otγ_vec = zeros(O)
@@ -65,27 +65,27 @@ function bw_step(hmm::AbstractHMM{F}, observations, obs_lengths) where F
             ∑otξ_vec[o] = sum(ξ[1:obs_lengths[o]-1,o,i,j])
             ∑otγ_vec[o] = sum(γ[1:obs_lengths[o]-1,o,i])
         end
-        new_π[i,j] = sum(∑otξ_vec) / sum(∑otγ_vec)
+        new_A[i,j] = sum(∑otξ_vec) / sum(∑otγ_vec)
     end
-    new_π ./= sum(new_π, dims=2) #dummy renorm
-    new_π0 = (sum(γ[1,:,:], dims=1)./sum(sum(γ[1,:,:], dims=1)))[1,:]
-    new_π0 ./= sum(new_π0) #dummy renorm
+    new_A ./= sum(new_A, dims=2) #dummy renorm
+    new_a = (sum(γ[1,:,:], dims=1)./sum(sum(γ[1,:,:], dims=1)))[1,:]
+    new_a ./= sum(new_a) #dummy renorm
 
     obs_mask = .!nan_mask
     obs_collection = observations[obs_mask[:,:]]
 
-    D = Distribution{F}[]
-    @inbounds for (i, d) in enumerate(hmm.D)
+    B = Categorical[]
+    @inbounds for (i, d) in enumerate(hmm.B)
         γ_d = γ[:,:,i]
-        push!(D, t_categorical_mle(Categorical, d.support[end], obs_collection, γ_d[obs_mask[:,:]]))
+        push!(B, t_categorical_mle(Categorical, d.support[end], obs_collection, γ_d[obs_mask[:,:]]))
     end
 
-    return typeof(hmm)(new_π0, new_π, D), lps(log_pobs)
+    return typeof(hmm)(new_a, new_A, B), lps(log_pobs)
 end
                 function bw_llhs(hmm, observations)
-                    lls = zeros(length(hmm.D), size(observations)...)
-                    Threads.@threads for d in 1:length(hmm.D)
-                        lls[d,:,:] = logpdf.(hmm.D[d], observations)
+                    lls = zeros(length(hmm.B), size(observations)...)
+                    Threads.@threads for d in 1:length(hmm.B)
+                        lls[d,:,:] = logpdf.(hmm.B[d], observations)
                     end
                     return lls
                 end

@@ -2,8 +2,9 @@ module BioBackgroundModels
 
 import Base:copy,size
 import Distances: euclidean
-import Distributions:Distribution,VariateForm,Univariate,Dirichlet,Categorical,logpdf,isprobvec
+import Distributions:Univariate,Dirichlet,Categorical,logpdf,isprobvec
 import Distributed: RemoteChannel, myid, remote_do, rmprocs
+import HMMBase: AbstractHMM, assert_hmm, istransmat
 import MCMCChains: Chains, ChainDataFrame, heideldiag
 import Printf: @sprintf
 import Random: rand
@@ -13,8 +14,8 @@ import Statistics: mean
 import UnicodePlots: lineplot,lineplot!, scatterplot,scatterplot!
 using BioSequences, DataFrames, FASTX, GFF3, ProgressMeter
 
-include("HMM/HMM.jl")
-export HMM
+include("BHMM/BHMM.jl")
+export BHMM
 include("EM/chain.jl")
 export Chain_ID, EM_step
 include("API/genome_sampling.jl")

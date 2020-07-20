@@ -1,13 +1,13 @@
-#function to obtain positional likelihoods for a sequence under a given HMM.
-function get_BGHMM_symbol_lh(seq::AbstractMatrix, hmm::AbstractHMM)
+#function to obtain positional likelihoods for a sequence under a given BHMM.
+function get_BGHMM_symbol_lh(seq::AbstractMatrix, hmm::BHMM)
     @assert size(seq)[1] == 1
     (seq=Array(transpose(seq))) # one sequence at a time only
     symbol_lhs = zeros(length(seq))
     length_mask = [length(seq)-1]
     
     lls = bw_llhs(hmm, seq) #obtain log likelihoods for sequences and states
-    log_α = messages_forwards_log(hmm.π0, hmm.π, lls, length_mask) #get forward messages
-    log_β = messages_backwards_log(hmm.π, lls, length_mask) # get backwards messages
+    log_α = messages_forwards_log(hmm.a, hmm.A, lls, length_mask) #get forward messages
+    log_β = messages_backwards_log(hmm.A, lls, length_mask) # get backwards messages
 
     #calculate observation probability and γ weights
     K,Tmaxplus1,Strand = size(lls) #the last T value is the 0 end marker of the longest T
@@ -27,7 +27,7 @@ function get_BGHMM_symbol_lh(seq::AbstractMatrix, hmm::AbstractHMM)
     for t in 1:length_mask[1]
         symbol_lh::AbstractFloat = -Inf #ie log(p=0)
         for k = 1:K #iterate over states
-                state_symbol_lh::AbstractFloat = lps(log_γ[t,k], log(hmm.D[k].p[seq[t]])) #state symbol likelihood is the γ weight * the state symbol probability (log implementation)
+                state_symbol_lh::AbstractFloat = lps(log_γ[t,k], log(hmm.B[k].p[seq[t]])) #state symbol likelihood is the γ weight * the state symbol probability (log implementation)
                 symbol_lh = logaddexp(symbol_lh, state_symbol_lh) #sum the probabilities over states
         end
         symbol_lhs[t] = symbol_lh
@@ -46,8 +46,8 @@ function BGHMM_likelihood_calc(observations::DataFrame, BGHMM_dict::Dict, code_p
     @showprogress 1 "Writing frags to matrix.." for (jobid, frag) in BGHMM_fragments
         (frag_start, o, partition, strand) = jobid
 
-        partition_BGHMM::HMM = BGHMM_dict[code_partition_dict[partition]][1]
-        no_symbols = length(partition_BGHMM.D[1].p)
+        partition_BGHMM::BHMM = BGHMM_dict[code_partition_dict[partition]][1]
+        no_symbols = length(partition_BGHMM.B[1].p)
         order = Int(log(4,no_symbols) - 1)
 
         order_seq = get_order_n_seqs([frag], order)
