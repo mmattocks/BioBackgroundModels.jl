@@ -1,7 +1,9 @@
 function EM_converge!(hmm_jobs::RemoteChannel, output_hmms::RemoteChannel, no_models::Integer; load_config::LoadConfig=LoadConfig(1:typemax(Int64)-1, 0:typemax(Int64)-1),  EM_func::Function=linear_step, delta_thresh=1e-3, max_iterates=5000, verbose=false)
     while isready(hmm_jobs)
         workerid = myid()
+        println("$workerid has $load_config, no models $no_models")
         jobid, start_iterate, hmm, job_norm, observations = load_balancer(no_models, hmm_jobs, load_config)
+        println("$workerid get $jobid")
         jobid == 0 && break #no valid job for this worker according to load_table entry
 
         start_iterate > max_iterates - 1 && throw(ArgumentError("BHMM chain $jobid is already longer ($start_iterate iterates) than specified max_iterates!"))

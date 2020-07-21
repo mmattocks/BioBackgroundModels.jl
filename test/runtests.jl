@@ -123,16 +123,16 @@ end
     high_config=LoadConfig(4:6,0:2,whitelist=job_ids)
 
     no_input_hmms, chains, input_channel, output_channel = setup_EM_jobs!(job_ids,obs_sets)
-    @test load_balancer(no_input_hmms, input_channel, K_exclusive_config) == (0,0,0,0,0)
+    @test load_balancer(no_input_hmms, input_channel, K_exclusive_config, 3) == (0,0,0,0,0)
 
     no_input_hmms, chains, input_channel, output_channel = setup_EM_jobs!(job_ids,obs_sets)
-    @test load_balancer(no_input_hmms, input_channel, O_exclusive_config) == (0,0,0,0,0)
+    @test load_balancer(no_input_hmms, input_channel, O_exclusive_config, 3) == (0,0,0,0,0)
 
     no_input_hmms, chains, input_channel, output_channel = setup_EM_jobs!(job_ids,obs_sets)
-    @test load_balancer(no_input_hmms, input_channel, blacklist_config) == (0,0,0,0,0)
+    @test load_balancer(no_input_hmms, input_channel, blacklist_config, 3) == (0,0,0,0,0)
 
     no_input_hmms, chains, input_channel, output_channel = setup_EM_jobs!(job_ids,obs_sets)
-    @test load_balancer(no_input_hmms, input_channel, whitelist_config) == (0,0,0,0,0)
+    @test load_balancer(no_input_hmms, input_channel, whitelist_config, 3) == (0,0,0,0,0)
 
     no_input_hmms, chains, input_channel, output_channel = setup_EM_jobs!(job_ids,obs_sets)
     high_set=load_balancer(no_input_hmms, input_channel, high_config) 
