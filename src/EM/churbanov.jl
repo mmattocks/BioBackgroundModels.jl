@@ -17,26 +17,23 @@ function linear_step(hmm, observations, obs_lengths)
     #TERMINATION
     lls = c_llhs(hmm,observations[:,1])
     α1om = lps.(lls,a) #first position forward msgs
+    log_pobs = [c_lse(lps.(α1om[o,:], βoi_T[o,:])) for o in 1:O]
 
-    Toij = [c_lse([lps(Tijm_T[o,i,j,m], α1om[o,m]) for m in 1:N]) for o in 1:O, i in 1:N, j in 1:N] #terminate Tijs with forward messages
-    Eoiγ = [c_lse([lps(Eoγim_T[o,γ,i,m], α1om[o,m]) for m in 1:N]) for o in 1:O, i in 1:N, γ in 1:Γ] #terminate Eids with forward messages
+    Toij = [c_lse([lps(Tijm_T[o,i,j,m], α1om[o,m], -log_pobs[o]) for m in 1:N]) for o in 1:O, i in 1:N, j in 1:N] #terminate Tijs with forward messages
+    Eoiγ = [c_lse([lps(Eoγim_T[o,γ,i,m], α1om[o,m], -log_pobs[o]) for m in 1:N]) for o in 1:O, i in 1:N, γ in 1:Γ] #terminate Eids with forward messages
 
     #INTEGRATE ACROSS OBSERVATIONS AND SOLVE FOR NEW BHMM PARAMS
-    obs_penalty=log(O) #broadcast subtraction to normalise log prob vals by obs number
     #INITIAL STATE DIST
     a_o=α1om.+βoi_T.-c_lse.(eachrow(α1om.+βoi_T)) #estimate a for each o
+    obs_penalty=log(O) #broadcast subtraction to normalise log prob vals by obs number
     new_a=c_lse.(eachcol(a_o)).-obs_penalty #sum over obs and normalise by number of obs
     #TRANSITION MATRIX
-    A_int = lps.(Toij,-c_lse.([view(Toij,o,i,:) for o in 1:O, i in 1:N]))
-    new_A = c_lse.([A_int[:,i,j] for i in 1:N, j in 1:N]).-obs_penalty
-    new_A=exp.(new_A)
-    new_A./=sum(new_A,dims=2) #dummy renorm for edge cases failing isprobvec
+    new_A = [c_lse(view(Toij,:,i,j)) for i in 1:N, j in 1:N].-c_lse.(eachcol(c_lse.([view(Toij,o,i,:) for o in 1:O, i in 1:N])))
     #EMISSION MATRIX
-    e_int=Eoiγ.-c_lse.([view(Eoiγ,o,j,:) for o in 1:O, j in 1:N])
-    new_b=c_lse.([view(e_int,:,j,γ) for γ in 1:Γ, j in 1:N]).-obs_penalty
-    new_B=[Categorical(exp.(new_b[:,i])) for i in 1:N]
+    new_b=[c_lse(view(Eoiγ,:,i,γ)) for i in 1:N, γ in 1:Γ].-c_lse.(eachcol(c_lse.([view(Eoiγ,o,i,:) for o in 1:O, i in 1:N])))
+    new_B=[Categorical(exp.(new_b[i,:])) for i in 1:N]
 
-    return BHMM(exp.(new_a), new_A, new_B, hmm.partition), lps([c_lse(lps.(α1om[o,:], βoi_T[o,:])) for o in 1:O])
+    return BHMM(exp.(new_a), exp.(new_A), new_B, hmm.partition), lps(log_pobs)
 end
                 #LINEAR_STEP SUBFUNCS
                 function backwards_sweep!(hmm, A, N, Γ, βoi_T, βoi_t, Tijm_T, Tijm_t, Eoγim_T, Eoγim_t, observations, mask, obs_lengths)

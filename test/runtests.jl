@@ -646,7 +646,7 @@ end
 
     # "Testing fit_mle!..."
 
-    #test fit_mle! function
+    @info "test fit_mle! function"
     input_hmms= RemoteChannel(()->Channel{Tuple}(1))
     output_hmms = RemoteChannel(()->Channel{Tuple}(30))
     chainid=Chain_ID("Test",2,0,1)
@@ -671,7 +671,7 @@ end
     @test log_p == obs_lh_given_hmm(transpose(obs),hmm3,linear=false)
     @test converged == false
 
-    # "Test convergence.."
+    @info "Test convergence.."
     obs=zeros(UInt8, 101, 2)
     for i in 1:size(obs)[2]
         obs[1:100,i]=rand(1:4,100)
@@ -747,7 +747,7 @@ end
             @test dist.support==other_hmm[1].B[d].support
             @test ms_hmm[1].B[d].support==other_hmm[1].B[d].support
             @test !isapprox(dist.p, other_hmm[1].B[d].p)
-            @test isapprox(ms_hmm[1].B[d].p, other_hmm[1].B[d].p, atol=.005)
+            @test isapprox(ms_hmm[1].B[d].p, other_hmm[1].B[d].p)
 
             end
         elseif n == :partition
@@ -762,7 +762,7 @@ end
             @test isapprox(getfield(new_hmm[1],n), getfield(ms_dbl[1],n))
 
             @test !isapprox(getfield(new_hmm[1],n), getfield(other_hmm[1],n))
-            @test isapprox(getfield(ms_hmm[1],n), getfield(other_hmm[1],n),atol=.01)
+            @test isapprox(getfield(ms_hmm[1],n), getfield(other_hmm[1],n))
 
         end
     end
