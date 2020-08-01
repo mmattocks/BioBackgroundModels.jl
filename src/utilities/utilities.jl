@@ -7,6 +7,7 @@ function split_obs_sets(sample_dfs::Dict{String,DataFrame})
     test_sets = Dict{String,Vector{LongSequence{DNAAlphabet{2}}}}()
 
     for (partition_id, partition) in sample_dfs
+        partition = partition[shuffle(1:size(partition, 1)),:] #shuffle the samples to avoid any effect from sampling without replacement
         partition.sampleLength = (partition.SampleEnd - partition.SampleStart) .+ 1
         midway = sum(partition.sampleLength)÷2
         split_index = 0
