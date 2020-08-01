@@ -646,7 +646,7 @@ end
 
     # "Testing fit_mle!..."
 
-    @info "test fit_mle! function"
+    # "test fit_mle! function"
     input_hmms= RemoteChannel(()->Channel{Tuple}(1))
     output_hmms = RemoteChannel(()->Channel{Tuple}(30))
     chainid=Chain_ID("Test",2,0,1)
@@ -671,7 +671,7 @@ end
     @test log_p == obs_lh_given_hmm(transpose(obs),hmm3,linear=false)
     @test converged == false
 
-    @info "Test convergence.."
+    # "Test convergence.."
     obs=zeros(UInt8, 101, 2)
     for i in 1:size(obs)[2]
         obs[1:100,i]=rand(1:4,100)
@@ -803,7 +803,7 @@ end
         obs[o,1:obsl]=rand(1:4,obsl)
     end
     input_hmms= RemoteChannel(()->Channel{Tuple}(1))
-    output_hmms = RemoteChannel(()->Channel{Tuple}(30))
+    output_hmms = RemoteChannel(()->Channel{Tuple}(Inf))
     put!(input_hmms, (chainid, 2, hmm, 0.0, obs))
     BioBackgroundModels.EM_converge!(input_hmms, output_hmms, 1; delta_thresh=.05, max_iterates=100, verbose=true)
     wait(output_hmms)
