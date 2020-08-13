@@ -7,7 +7,7 @@ import Distributed: RemoteChannel, myid, remote_do, rmprocs
 import HMMBase: AbstractHMM, assert_hmm, istransmat
 import MCMCChains: Chains, ChainDataFrame, heideldiag
 import Printf: @sprintf
-import Random: rand
+import Random: rand, shuffle
 import Serialization: serialize
 import StatsFuns: logsumexp, logaddexp
 import Statistics: mean
