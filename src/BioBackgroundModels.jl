@@ -48,6 +48,4 @@ include("utilities/utilities.jl")
 export split_obs_sets
 include("utilities/log_prob_sum.jl")
 export lps
-includ("utilities/synthetic_genome.jl")
-export synthetic_sample
 end # module
