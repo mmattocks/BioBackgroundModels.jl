@@ -37,6 +37,7 @@ include("EM/EM_converge.jl")
 include("genome_sampling/partition_masker.jl")
 include("genome_sampling/sequence_sampler.jl")
 include("likelihood_funcs/bg_lh_matrix.jl")
+export BGHMM_likelihood_calc
 include("likelihood_funcs/hmm.jl")
 export obs_lh_given_hmm
 include("utilities/observation_coding.jl")
