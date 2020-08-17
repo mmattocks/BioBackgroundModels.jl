@@ -38,16 +38,17 @@ function make_padded_df(position_fasta::String, gff3_path::String, genome_path::
     return position_df
 end
 
-function add_partition_masks!(position_df::DataFrame, gff3_path::String, perigenic_pad::Integer=500)
+function add_partition_masks!(position_df::DataFrame, gff3_path::String, perigenic_pad::Integer=500, columns::Tuple{Symbol,Symbol,Symbol}=(:SeqID, :PadSeq, :PadStart))
     partitions=["exon", "periexonic", "intergenic"]
     partition_coords_dict = partition_genome_coordinates(gff3_path, perigenic_pad)
     partitioned_scaffolds = divide_partitions_by_scaffold(partition_coords_dict)
-    maskcol = Vector{Matrix{Integer}}()
+    maskcol = [zeros(Int64,0,0) for i in 1:size(position_df,1)]
+    position_df.MaskMatrix=maskcol
 
-    @showprogress 1 "Masking..." for entry in eachrow(position_df)
-        scaffold = entry.SeqID
-        maskLength = length(entry.PadSeq)
-        seqStart = entry.PadStart
+    @Threads.threads for entry in eachrow(position_df)
+        scaffold = entry[columns[1]]
+        maskLength = length(entry[columns[2]])
+        seqStart = entry[columns[3]]
 
         scaffold_coords_dict = Dict{String,DataFrame}()
         
@@ -57,10 +58,9 @@ function add_partition_masks!(position_df::DataFrame, gff3_path::String, perigen
             end
         end
 
-        push!(maskcol, mask_sequence_by_partition(maskLength, seqStart, scaffold_coords_dict))
+        entry.MaskMatrix=mask_sequence_by_partition(maskLength, seqStart, scaffold_coords_dict)
     end
 
-    position_df.MaskMatrix=maskcol
 end
                 #add_partition_masks!() SUBFUNCTIONS
                 function divide_partitions_by_scaffold(partition_coords_dict::Dict{String, DataFrame})

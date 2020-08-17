@@ -43,10 +43,12 @@ function BGHMM_likelihood_calc(observations::DataFrame, BGHMM_dict::Dict, code_p
 
     BGHMM_fragments = fragment_observations_by_BGHMM(observations[!, symbol], observations.MaskMatrix)
 
-    @showprogress 1 "Writing frags to matrix.." for (jobid, frag) in BGHMM_fragments
+    
+    #@showprogress 1 "Writing frags to matrix.." 
+    Threads.@threads for (jobid, frag) in BGHMM_fragments
         (frag_start, o, partition, strand) = jobid
 
-        partition_BGHMM::BHMM = BGHMM_dict[code_partition_dict[partition]][1]
+        partition_BGHMM::BHMM = BGHMM_dict[code_partition_dict[partition]]
         no_symbols = length(partition_BGHMM.B[1].p)
         order = Int(log(4,no_symbols) - 1)
 
