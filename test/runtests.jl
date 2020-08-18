@@ -413,10 +413,10 @@ end
     Dex = [Categorical([.3, .1, .3, .3]),Categorical([.15, .35, .35, .15])]
     Dper = [Categorical([.15, .35, .35, .15]),Categorical([.4, .1, .1, .4])]
     Dint = [Categorical([.4, .1, .1, .4]),Categorical([.45, .05, .05, .45])]
-    BGHMM_dict = Dict{String,Tuple{BHMM, Int64, Float64}}()
-    BGHMM_dict["exon"] = (BHMM(trans, Dex), 0, 0)
-    BGHMM_dict["periexonic"] = (BHMM(trans, Dper), 0, 0)
-    BGHMM_dict["intergenic"] = (BHMM(trans, Dint), 0, 0)
+    BGHMM_dict = Dict{String,BHMM}()
+    BGHMM_dict["exon"] = BHMM(trans, Dex)
+    BGHMM_dict["periexonic"] = BHMM(trans, Dper)
+    BGHMM_dict["intergenic"] = BHMM(trans, Dint)
 
     position_length=141;perigenic_pad=250;
     position_df = make_padded_df(posfasta, gff, genome, index, position_length)
@@ -453,13 +453,13 @@ end
     periexonic_frag=reverse_complement!(LongSequence{DNAAlphabet{2}}(seq[360:510]))
     pno=get_order_n_seqs([periexonic_frag],0)
     pcode=code_seqs(pno)
-    plh=get_BGHMM_symbol_lh(pcode, BGHMM_dict["periexonic"][1])
+    plh=get_BGHMM_symbol_lh(pcode, BGHMM_dict["periexonic"])
     @test isapprox(lh_matrix[1:151,1], reverse(plh))
 
     exonic_frag=LongSequence{DNAAlphabet{2}}(seq[511:570])
     eno=get_order_n_seqs([exonic_frag],0)
     ecode=code_seqs(eno)
-    elh=get_BGHMM_symbol_lh(ecode, BGHMM_dict["exon"][1])
+    elh=get_BGHMM_symbol_lh(ecode, BGHMM_dict["exon"])
     @test isapprox(lh_matrix[152:211,1],elh)
 end
 
