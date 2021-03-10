@@ -1,5 +1,9 @@
-#function to setup an BHMM chains dictionary and RemoteChannel for learning jobs, given a vector of state #s, order_nos, replicates to train, the dictionary to fill, the RemoteChannel and the training sequences
-#resumes any existing non-converged chains, otherwise initialises hmms for new chains given provided constants
+"""
+    setup_EM_jobs!(job_ids, obs_sets; delta_thresh, chains, init_function)
+
+Given a vector of 'Chain_IDs', and the appropriate obs_sets dictionary, return the appropriate tuple of channels and chains for the 'execute_EM_jobs!' function. Given an existing chains dict, resumes any existing non-converged chains (as assessed by the provided 'delta_thresh' value), otherwise initialises hmms for new chains with optionally user-specified 'init_function' (default 'autotransition_init').
+
+"""
 function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{LongSequence{DNAAlphabet{2}}}}; delta_thresh::Float64=1e-3,  chains::Dict{Chain_ID,Vector{EM_step}}=Dict{Chain_ID,Vector{EM_step}}(), init_function::Function=autotransition_init)
     #argument checking
     length(job_ids) < 1 && throw(ArgumentError("Empty job id vector!"))
@@ -31,6 +35,11 @@ function setup_EM_jobs!(job_ids::Vector{Chain_ID}, obs_sets::Dict{String,Vector{
     return no_input_hmms, chains, input_channel, output_channel
 end
 
+"""
+    execute_EM_jobs!(worker_pool, no_input_hmms, chains, input_channel, output_channel, chains_path; load_dict, EM_func, delta_thresh, max_iterates, verbose)
+
+Given: a vector of worker IDs ([1] to use the master), the splatted output of 'setup_EM_jobs' (no_input_hmms, chains, input_channel, output_channel), and a valid path to save chains ('chains_path'); assign chains to workers using 'load_dict' to iteratively execute 'EM_func' (default linear_step) until 'delta_thresh' convergence criterion is obtained or 'max_iterates' have been calculated. Specifying 'verbose=true' gives some additional debug output from 'EM_converge!'.
+"""
 function execute_EM_jobs!(worker_pool::Vector{Int64}, no_input_hmms::Integer, chains::Dict{Chain_ID,Vector{EM_step}},  input_channel::RemoteChannel, output_channel::RemoteChannel, chains_path::String; load_dict=Dict{Int64,LoadConfig}(), EM_func::Function=linear_step, delta_thresh=1e-3, max_iterates=5000, verbose=false)
     #argument checking
     length(worker_pool) < 1 && throw(ArgumentError("Worker pool must contain one or more worker IDs!"))

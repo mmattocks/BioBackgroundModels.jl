@@ -1,3 +1,9 @@
+"""
+    setup_sample_jobs(genome_path, genome_index_path, gff3_path, sample_set_length, sample_window_min, sample_window_max, perigenic_pad; deterministic)
+
+Return sample job channels for 'execute_sample_jobs', given 'genome_path' to a properly formatted FASTA genome, 'genome_index_path' to the associated .FAI, 'gff3_path' to the genome's GFF3 feature database, a total number of bases to sample, 'sample_set_length', as well as 'sample_window_min' and 'sample_window_max' lengths for individual samples. 'perigenic_pad' specifies the number of bases up- and down-stream of exonic sequences to be considered 'perigenic'; if 0, the perigenic partition will be entirely intronic. Optional boolean 'deterministic' may be set to 'true' to always return '+' strand sequences from unstranded samples; otherwise unstranded samples may be returned with either orientation.
+"""
+
 #function to partition genome and set up Distributed RemoteChannels so partitions can be sampled simultaneously
 function setup_sample_jobs(genome_path::String, genome_index_path::String, gff3_path::String, sample_set_length::Integer, sample_window_min::Integer, sample_window_max::Integer, perigenic_pad::Integer; deterministic::Bool=false)
     #argument checking
@@ -20,6 +26,12 @@ function setup_sample_jobs(genome_path::String, genome_index_path::String, gff3_
     progress_channel = RemoteChannel(()->Channel{Tuple}(20))
     return (input_sample_jobs, completed_sample_jobs, progress_channel, sample_set_length)
 end
+
+"""
+    execute_sample_jobs!(channels, worker_pool)
+
+Return sample dataframes for each genomic partition, given appropriately set up job channels (from setup_sample_jobs!) and a vector of worker ids ('worker_pool', [1] for master).
+"""
 
 function execute_sample_jobs(channels::Tuple{RemoteChannel,RemoteChannel,RemoteChannel,Integer}, worker_pool::Vector{Int64}; partitions::Integer=3)
     input_sample_channel, completed_sample_channel, progress_channel, sample_set_length = channels
