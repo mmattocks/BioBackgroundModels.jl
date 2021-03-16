@@ -61,7 +61,7 @@ end
                     return βoi_T, Tijm_T, Eoγim_T
                 end
 
-                #logsumexp
+                #logsumexp with single dispatch for speed
                 function c_lse(X::AbstractArray{T}; dims=:) where {T<:Real}
                     u=maximum(X)
                     u isa AbstractArray || isfinite(u) || return float(u)
